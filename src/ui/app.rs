@@ -3,6 +3,7 @@ use gpui::prelude::FluentBuilder;
 use gpui_component::*;
 use gpui_component::input::{Input, InputEvent, InputState};
 use gpui_component::scroll::ScrollableElement;
+use gpui_component::ActiveTheme;
 use rust_i18n::t;
 use std::sync::Arc;
 
@@ -1265,11 +1266,18 @@ impl SshTunnelApp {
                             .small()
                             .ghost()
                             .label(if language == "zh-CN" { "中/EN" } else { "EN/中" })
-                            .on_click(move |_, _, _| {
-                                let app_state = app_state.clone();
-                                tokio::spawn(async move {
-                                    app_state.toggle_language().await;
-                                });
+                            .on_click(move |_, window, cx| {
+                                // Toggle language synchronously
+                                if let Ok(mut ui_state) = app_state.ui_state.try_write() {
+                                    ui_state.language = if ui_state.language == "zh-CN" {
+                                        "en".to_string()
+                                    } else {
+                                        "zh-CN".to_string()
+                                    };
+                                    crate::utils::i18n::change_language(&ui_state.language);
+                                }
+                                // Refresh the window to update all text
+                                window.refresh();
                             })
                     )
                     // Theme toggle button
@@ -1278,7 +1286,7 @@ impl SshTunnelApp {
                             .small()
                             .ghost()
                             .label(if dark_mode { "☀️" } else { "🌙" })
-                            .on_click(move |_, _, cx| {
+                            .on_click(move |_, window, cx| {
                                 // Toggle dark mode synchronously using try_write
                                 let is_dark = if let Ok(mut ui_state) = app_state2.ui_state.try_write() {
                                     ui_state.dark_mode = !ui_state.dark_mode;
@@ -1290,7 +1298,7 @@ impl SshTunnelApp {
                                 use gpui_component::theme::{Theme, ThemeMode};
                                 Theme::change(
                                     if is_dark { ThemeMode::Dark } else { ThemeMode::Light },
-                                    None,
+                                    Some(window),
                                     cx
                                 );
                             })
@@ -1834,9 +1842,16 @@ impl SshTunnelApp {
     }
 
     /// Render left panel with connection list (sidebar)
-    fn render_left_panel(&self, _cx: &mut Context<Self>) -> Div {
+    fn render_left_panel(&self, cx: &mut Context<Self>) -> Div {
         use label::Label;
         use button::{Button, ButtonVariants};
+
+        // Get theme colors
+        let theme = cx.theme();
+        let panel_bg = theme.sidebar;
+        let border_color = theme.border;
+        let text_color = theme.foreground;
+        let muted_color = theme.muted_foreground;
 
         // Get filter text and connections
         let filter_text = if let Ok(ui_state) = self.app_state.ui_state.try_read() {
@@ -1890,9 +1905,9 @@ impl SshTunnelApp {
         v_flex()
             .w(px(280.0))
             .h_full()
-            .bg(rgb(0xf8fafc))
+            .bg(panel_bg)
             .border_r_1()
-            .border_color(rgb(0xe2e8f0))
+            .border_color(border_color)
             // Header
             .child(
                 v_flex()
@@ -1900,7 +1915,7 @@ impl SshTunnelApp {
                     .p_4()
                     .gap_3()
                     .border_b_1()
-                    .border_color(rgb(0xe2e8f0))
+                    .border_color(border_color)
                     .child(
                         h_flex()
                             .items_center()
@@ -1908,16 +1923,16 @@ impl SshTunnelApp {
                             .child(
                                 Label::new("Connections".to_string())
                                     .text_size(rems(0.95))
-                                    .text_color(rgb(0x334155))
+                                    .text_color(text_color)
                             )
                             .child(
                                 div()
                                     .px_2()
                                     .py_1()
-                                    .bg(rgb(0xe2e8f0))
+                                    .bg(border_color)
                                     .rounded_full()
                                     .text_xs()
-                                    .text_color(rgb(0x64748b))
+                                    .text_color(muted_color)
                                     .child(format!("{}", all_connections.len()))
                             )
                     )
@@ -1943,7 +1958,7 @@ impl SshTunnelApp {
                                         .child(
                                             div()
                                                 .text_sm()
-                                                .text_color(rgb(0x94a3b8))
+                                                .text_color(muted_color)
                                                 .text_center()
                                                 .child(if filter_text.is_empty() {
                                                     "No connections yet"
@@ -1955,7 +1970,7 @@ impl SshTunnelApp {
                                             this.child(
                                                 div()
                                                     .text_xs()
-                                                    .text_color(rgb(0xcbd5e1))
+                                                    .text_color(muted_color)
                                                     .text_center()
                                                     .mt_2()
                                                     .child("Click + New to add one")
@@ -2204,9 +2219,17 @@ impl SshTunnelApp {
     }
 
     /// Render right panel with config details (main content area)
-    fn render_right_panel_new(&self, _cx: &mut Context<Self>) -> Div {
+    fn render_right_panel_new(&self, cx: &mut Context<Self>) -> Div {
         use label::Label;
         use button::{Button, ButtonVariants};
+
+        // Get theme colors
+        let theme = cx.theme();
+        let bg_color = theme.background;
+        let card_bg = theme.background;  // Use background for cards
+        let border_color = theme.border;
+        let text_color = theme.foreground;
+        let muted_color = theme.muted_foreground;
 
         // Get UI state
         let (form_data, editing_id, password_input_for, is_connecting, show_templates) =
@@ -2237,15 +2260,15 @@ impl SshTunnelApp {
             .flex_1()
             .size_full()
             .overflow_hidden()
-            .bg(rgb(0xf1f5f9))
+            .bg(bg_color)
             // Header bar (fixed height)
             .child(
                 h_flex()
                     .flex_shrink_0()
                     .p_4()
-                    .bg(rgb(0xffffff))
+                    .bg(card_bg)
                     .border_b_1()
-                    .border_color(rgb(0xe2e8f0))
+                    .border_color(border_color)
                     .items_center()
                     .justify_between()
                     .child(
@@ -2267,7 +2290,7 @@ impl SshTunnelApp {
                                     }
                                 )
                                 .text_size(rems(1.1))
-                                .text_color(rgb(0x1e293b))
+                                .text_color(text_color)
                             )
                             .when(is_editing, |this| {
                                 this.child(
@@ -2436,9 +2459,9 @@ impl SshTunnelApp {
                     .flex_shrink_0()
                     .h(px(56.0))  // Fixed height to match left panel
                     .px_4()
-                    .bg(rgb(0xffffff))
+                    .bg(card_bg)
                     .border_t_1()
-                    .border_color(rgb(0xe2e8f0))
+                    .border_color(border_color)
                     .items_center()
                     .justify_between()
                     .child(
@@ -2448,13 +2471,13 @@ impl SshTunnelApp {
                             .child(
                                 div()
                                     .text_sm()
-                                    .text_color(rgb(0x64748b))
+                                    .text_color(muted_color)
                                     .child("💡")
                             )
                             .child(
                                 div()
                                     .text_sm()
-                                    .text_color(rgb(0x64748b))
+                                    .text_color(muted_color)
                                     .child(if is_editing {
                                         "Update the connection or click Connect"
                                     } else {
@@ -2608,10 +2631,13 @@ impl Render for SshTunnelApp {
         // Sync form_data to inputs on every render
         self.sync_form_to_inputs(window, cx);
 
+        // Get theme colors
+        let bg_color = cx.theme().background;
+
         v_flex()
             .size_full()
             .overflow_hidden()
-            .bg(rgb(0xf5f5f5))
+            .bg(bg_color)
             .child(
                 // Header with title and window controls (fixed height)
                 div()
