@@ -1222,6 +1222,17 @@ impl SshTunnelApp {
 
     fn render_header(&self, _cx: &mut Context<Self>) -> Div {
         use label::Label;
+        use button::{Button, ButtonVariants};
+
+        // Get current UI state
+        let (dark_mode, language) = if let Ok(ui_state) = self.app_state.ui_state.try_read() {
+            (ui_state.dark_mode, ui_state.language.clone())
+        } else {
+            (false, "en".to_string())
+        };
+
+        let app_state = self.app_state.clone();
+        let app_state2 = self.app_state.clone();
 
         h_flex()
             .items_center()
@@ -1247,7 +1258,43 @@ impl SshTunnelApp {
             .child(
                 h_flex()
                     .items_center()
-                    .gap_4()
+                    .gap_3()
+                    // Language toggle button
+                    .child(
+                        Button::new("lang-toggle")
+                            .small()
+                            .ghost()
+                            .label(if language == "zh-CN" { "中/EN" } else { "EN/中" })
+                            .on_click(move |_, _, _| {
+                                let app_state = app_state.clone();
+                                tokio::spawn(async move {
+                                    app_state.toggle_language().await;
+                                });
+                            })
+                    )
+                    // Theme toggle button
+                    .child(
+                        Button::new("theme-toggle")
+                            .small()
+                            .ghost()
+                            .label(if dark_mode { "☀️" } else { "🌙" })
+                            .on_click(move |_, _, cx| {
+                                // Toggle dark mode synchronously using try_write
+                                let is_dark = if let Ok(mut ui_state) = app_state2.ui_state.try_write() {
+                                    ui_state.dark_mode = !ui_state.dark_mode;
+                                    ui_state.dark_mode
+                                } else {
+                                    return;
+                                };
+                                // Update theme
+                                use gpui_component::theme::{Theme, ThemeMode};
+                                Theme::change(
+                                    if is_dark { ThemeMode::Dark } else { ThemeMode::Light },
+                                    None,
+                                    cx
+                                );
+                            })
+                    )
                     .child(
                         div()
                             .text_xs()
