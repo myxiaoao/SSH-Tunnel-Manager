@@ -3,6 +3,7 @@
 use crate::models::{ActiveSession, SshConnection};
 use crate::services::config_service::ConfigService;
 use crate::services::session_manager::SessionManager;
+use rust_i18n::t;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 
@@ -599,7 +600,7 @@ impl AppState {
             self.delete_connection(id).await?;
             self.hide_delete_confirm().await;
             self.clear_selection_for_new().await;
-            self.show_success("Connection deleted".to_string()).await;
+            self.show_success(t!("messages.connection_deleted").to_string()).await;
         }
         Ok(())
     }

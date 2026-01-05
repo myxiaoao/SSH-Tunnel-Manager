@@ -7,6 +7,11 @@ app:
   active_sessions: 活动会话
   saved_connections: 已保存的连接
   settings: 设置
+  quick_templates: 快速模板
+  close: 关闭
+  no_active_sessions: 没有活动会话
+  connect_to_create: 连接服务器以创建隧道
+  click_new_to_start: "点击 '+ 新建连接' 开始"
 
 connection:
   name: 名称
@@ -79,10 +84,15 @@ actions:
   save: 保存
   cancel: 取消
   delete: 删除
+  confirm_delete: 确认删除
   edit: 编辑
   add: 添加
   remove: 移除
   ok: 确定
+  new: "+ 新建"
+
+search:
+  placeholder: "搜索连接..."
 
 status:
   connecting: 连接中...
@@ -90,17 +100,27 @@ status:
   disconnected: 已断开
   idle: 空闲
   error: 错误
+  active: "{count} 活动"
 
 messages:
   connection_success: 连接成功
-  connection_failed: "连接失败: {reason}"
-  port_in_use: "端口 {port} 已被占用"
-  invalid_port: "无效的端口号: {port}"
-  invalid_host: "无效的主机地址: {host}"
-  key_file_not_found: "找不到私钥文件: {path}"
+  connection_saved: 连接已保存！
+  connection_deleted: 连接已删除
+  connection_failed: "连接失败: %{reason}"
+  save_failed: "保存失败: %{reason}"
+  port_in_use: "端口 %{port} 已被占用"
+  invalid_port: "无效的端口号: %{port}"
+  invalid_host: "无效的主机地址: %{host}"
+  key_file_not_found: "找不到私钥文件: %{path}"
   key_file_permission: "私钥文件权限不正确，应该设置为 600"
   session_idle_closed: "会话因空闲超时已关闭"
-  confirm_delete: "确定要删除连接 \"{name}\" 吗？"
+  confirm_delete: "确定要删除连接 \"%{name}\" 吗？"
+  delete_confirm_title: 删除 "%{name}"？
+
+session:
+  duration: "时长: %{duration}"
+  traffic: "流量: %{sent} / %{received}"
+  traffic_updown: "流量: ↑ %{sent} / ↓ %{received}"
 
 settings:
   language:
@@ -115,9 +135,21 @@ settings:
 
 template:
   mysql: MySQL 数据库访问
+  mysql_name: MySQL 数据库
+  mysql_desc: 本地转发到 MySQL (3306)
   postgresql: PostgreSQL 数据库访问
+  postgresql_name: PostgreSQL
+  postgresql_desc: 本地转发到 PostgreSQL (5432)
   socks_proxy: SOCKS5 代理
+  socks5_name: SOCKS5 代理
+  socks5_desc: 动态代理转发
   web_debug: Web 调试端口
+  web_name: Web 服务
+  web_desc: 本地转发到 HTTP (80/8080)
+  rdp_name: 远程桌面
+  rdp_desc: 本地转发到 RDP (3389)
+  remote_name: 暴露服务
+  remote_desc: 远程转发以暴露本地服务
   multi_service: 多服务转发
 
 menu:

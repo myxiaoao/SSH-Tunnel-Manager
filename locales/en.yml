@@ -7,6 +7,11 @@ app:
   active_sessions: Active Sessions
   saved_connections: Saved Connections
   settings: Settings
+  quick_templates: Quick Templates
+  close: Close
+  no_active_sessions: No active sessions
+  connect_to_create: Connect to a server to create a tunnel
+  click_new_to_start: "Click '+ New Connection' to get started"
 
 connection:
   name: Name
@@ -72,10 +77,15 @@ actions:
   save: Save
   cancel: Cancel
   delete: Delete
+  confirm_delete: "Yes, Delete"
   edit: Edit
   add: Add
   remove: Remove
   ok: OK
+  new: "+ New"
+
+search:
+  placeholder: "Search connections..."
 
 status:
   connecting: Connecting...
@@ -83,17 +93,27 @@ status:
   disconnected: Disconnected
   idle: Idle
   error: Error
+  active: "{count} Active"
 
 messages:
   connection_success: Connected successfully
-  connection_failed: "Connection failed: {reason}"
-  port_in_use: "Port {port} is already in use"
-  invalid_port: "Invalid port number: {port}"
-  invalid_host: "Invalid host address: {host}"
-  key_file_not_found: "Private key file not found: {path}"
+  connection_saved: Connection saved!
+  connection_deleted: Connection deleted
+  connection_failed: "Connection failed: %{reason}"
+  save_failed: "Failed to save: %{reason}"
+  port_in_use: "Port %{port} is already in use"
+  invalid_port: "Invalid port number: %{port}"
+  invalid_host: "Invalid host address: %{host}"
+  key_file_not_found: "Private key file not found: %{path}"
   key_file_permission: "Private key file permission incorrect, should be 600"
   session_idle_closed: "Session closed due to idle timeout"
-  confirm_delete: "Are you sure you want to delete connection \"{name}\"?"
+  confirm_delete: "Are you sure you want to delete connection \"%{name}\"?"
+  delete_confirm_title: Delete "%{name}"?
+
+session:
+  duration: "Duration: %{duration}"
+  traffic: "Traffic: %{sent} / %{received}"
+  traffic_updown: "Traffic: ↑ %{sent} / ↓ %{received}"
 
 settings:
   language:
@@ -108,9 +128,21 @@ settings:
 
 template:
   mysql: MySQL Database Access
+  mysql_name: MySQL Database
+  mysql_desc: Local forward to MySQL (3306)
   postgresql: PostgreSQL Database Access
+  postgresql_name: PostgreSQL
+  postgresql_desc: Local forward to PostgreSQL (5432)
   socks_proxy: SOCKS5 Proxy
+  socks5_name: SOCKS5 Proxy
+  socks5_desc: Dynamic forwarding for proxy
   web_debug: Web Debug Port
+  web_name: Web Service
+  web_desc: Local forward to HTTP (80/8080)
+  rdp_name: Remote Desktop
+  rdp_desc: Local forward to RDP (3389)
+  remote_name: Expose Service
+  remote_desc: Remote forward to expose local
   multi_service: Multi-Service Forwarding
 
 errors:
