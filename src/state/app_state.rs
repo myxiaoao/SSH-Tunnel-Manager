@@ -3,6 +3,7 @@
 use crate::models::{ActiveSession, SshConnection};
 use crate::services::config_service::ConfigService;
 use crate::services::session_manager::SessionManager;
+use rust_i18n::t;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 
@@ -65,6 +66,12 @@ pub struct UiState {
 
     /// Connection ID pending delete confirmation
     pub confirm_delete_id: Option<uuid::Uuid>,
+
+    /// Current theme mode (true = dark, false = light)
+    pub dark_mode: bool,
+
+    /// Current language code ("en" or "zh-CN")
+    pub language: String,
 }
 
 /// Connection form input data
@@ -331,6 +338,8 @@ impl Default for UiState {
             connecting_ids: Vec::new(),
             form_data: ConnectionFormData::default(),
             confirm_delete_id: None,
+            dark_mode: false,
+            language: crate::utils::i18n::current_language(),
         }
     }
 }
@@ -551,6 +560,35 @@ impl AppState {
         self.ui_state.write().await.confirm_delete_id = None;
     }
 
+    /// Toggle dark mode
+    pub async fn toggle_dark_mode(&self) -> bool {
+        let mut ui_state = self.ui_state.write().await;
+        ui_state.dark_mode = !ui_state.dark_mode;
+        ui_state.dark_mode
+    }
+
+    /// Get current dark mode state
+    pub async fn is_dark_mode(&self) -> bool {
+        self.ui_state.read().await.dark_mode
+    }
+
+    /// Toggle language between English and Chinese
+    pub async fn toggle_language(&self) -> String {
+        let mut ui_state = self.ui_state.write().await;
+        ui_state.language = if ui_state.language == "zh-CN" {
+            "en".to_string()
+        } else {
+            "zh-CN".to_string()
+        };
+        crate::utils::i18n::change_language(&ui_state.language);
+        ui_state.language.clone()
+    }
+
+    /// Get current language
+    pub async fn current_language(&self) -> String {
+        self.ui_state.read().await.language.clone()
+    }
+
     /// Confirm and execute delete
     pub async fn confirm_delete(&self) -> anyhow::Result<()> {
         let conn_id = {
@@ -562,7 +600,7 @@ impl AppState {
             self.delete_connection(id).await?;
             self.hide_delete_confirm().await;
             self.clear_selection_for_new().await;
-            self.show_success("Connection deleted".to_string()).await;
+            self.show_success(t!("messages.connection_deleted").to_string()).await;
         }
         Ok(())
     }
