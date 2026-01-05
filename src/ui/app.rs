@@ -293,15 +293,21 @@ impl SshTunnelApp {
     }
 
     /// Render host info section
-    fn render_host_info(&self) -> Div {
+    fn render_host_info(&self, cx: &mut Context<Self>) -> Div {
         use label::Label;
+
+        let theme = cx.theme();
+        let card_bg = theme.background;
+        let border_color = theme.border;
+        let text_color = theme.foreground;
+        let muted_color = theme.muted_foreground;
 
         v_flex()
             .gap_4()
             .p_4()
-            .bg(rgb(0xffffff))
+            .bg(card_bg)
             .border_1()
-            .border_color(rgb(0xe5e7eb))
+            .border_color(border_color)
             .rounded_lg()
             .child(
                 h_flex()
@@ -315,13 +321,13 @@ impl SshTunnelApp {
                     .child(
                         Label::new("Host Information".to_string())
                             .text_size(rems(0.95))
-                            .text_color(rgb(0x374151))
+                            .text_color(text_color)
                     )
             )
             .child(
                 v_flex()
                     .gap_2()
-                    .child(Label::new("Connection Name".to_string()).text_size(rems(0.85)).text_color(rgb(0x6b7280)))
+                    .child(Label::new("Connection Name".to_string()).text_size(rems(0.85)).text_color(muted_color))
                     .child(Input::new(&self.name_input).cleanable(true))
             )
             .child(
@@ -331,28 +337,36 @@ impl SshTunnelApp {
                         v_flex()
                             .flex_1()
                             .gap_2()
-                            .child(Label::new("Host Address".to_string()).text_size(rems(0.85)).text_color(rgb(0x6b7280)))
+                            .child(Label::new("Host Address".to_string()).text_size(rems(0.85)).text_color(muted_color))
                             .child(Input::new(&self.host_input).cleanable(true))
                     )
                     .child(
                         v_flex()
                             .w(px(100.0))
                             .gap_2()
-                            .child(Label::new("Port".to_string()).text_size(rems(0.85)).text_color(rgb(0x6b7280)))
+                            .child(Label::new("Port".to_string()).text_size(rems(0.85)).text_color(muted_color))
                             .child(Input::new(&self.port_input).cleanable(true))
                     )
             )
             .child(
                 v_flex()
                     .gap_2()
-                    .child(Label::new("Username".to_string()).text_size(rems(0.85)).text_color(rgb(0x6b7280)))
+                    .child(Label::new("Username".to_string()).text_size(rems(0.85)).text_color(muted_color))
                     .child(Input::new(&self.username_input).cleanable(true))
             )
     }
 
     /// Render authentication section
-    fn render_authentication(&self) -> Div {
+    fn render_authentication(&self, cx: &mut Context<Self>) -> Div {
         use label::Label;
+
+        let theme = cx.theme();
+        let card_bg = theme.background;
+        let border_color = theme.border;
+        let text_color = theme.foreground;
+        let muted_color = theme.muted_foreground;
+        let muted_bg = theme.muted;
+        let primary_color = theme.primary;
 
         let form_data = if let Ok(ui_state) = self.app_state.ui_state.try_read() {
             ui_state.form_data.clone()
@@ -365,9 +379,9 @@ impl SshTunnelApp {
         v_flex()
             .gap_4()
             .p_4()
-            .bg(rgb(0xffffff))
+            .bg(card_bg)
             .border_1()
-            .border_color(rgb(0xe5e7eb))
+            .border_color(border_color)
             .rounded_lg()
             .child(
                 h_flex()
@@ -381,14 +395,14 @@ impl SshTunnelApp {
                     .child(
                         Label::new("Authentication".to_string())
                             .text_size(rems(0.95))
-                            .text_color(rgb(0x374151))
+                            .text_color(text_color)
                     )
             )
             .child(
                 h_flex()
                     .gap_4()
                     .p_2()
-                    .bg(rgb(0xf9fafb))
+                    .bg(muted_bg)
                     .rounded_md()
                     .child({
                         let app_state = self.app_state.clone();
@@ -397,7 +411,7 @@ impl SshTunnelApp {
                             .px_3()
                             .py_2()
                             .rounded_md()
-                            .bg(if !is_publickey { rgb(0xdbeafe) } else { rgb(0xf9fafb) })
+                            .bg(if !is_publickey { primary_color.opacity(0.2) } else { muted_bg })
                             .on_mouse_down(gpui::MouseButton::Left, move |_event, _window, _app| {
                                 let app_state = app_state.clone();
                                 tokio::spawn(async move {
@@ -413,7 +427,7 @@ impl SshTunnelApp {
                                             .size(px(16.0))
                                             .rounded_full()
                                             .border_2()
-                                            .border_color(if !is_publickey { rgb(0x3b82f6) } else { rgb(0xd1d5db) })
+                                            .border_color(if !is_publickey { primary_color } else { border_color })
                                             .flex()
                                             .items_center()
                                             .justify_center()
@@ -422,14 +436,14 @@ impl SshTunnelApp {
                                                     div()
                                                         .size(px(8.0))
                                                         .rounded_full()
-                                                        .bg(rgb(0x3b82f6))
+                                                        .bg(primary_color)
                                                 )
                                             })
                                     )
                                     .child(
                                         Label::new("Password".to_string())
                                             .text_size(rems(0.85))
-                                            .text_color(if !is_publickey { rgb(0x1e40af) } else { rgb(0x6b7280) })
+                                            .text_color(if !is_publickey { text_color } else { muted_color })
                                     )
                             )
                     })
@@ -440,7 +454,7 @@ impl SshTunnelApp {
                             .px_3()
                             .py_2()
                             .rounded_md()
-                            .bg(if is_publickey { rgb(0xdbeafe) } else { rgb(0xf9fafb) })
+                            .bg(if is_publickey { primary_color.opacity(0.2) } else { muted_bg })
                             .on_mouse_down(gpui::MouseButton::Left, move |_event, _window, _app| {
                                 let app_state = app_state.clone();
                                 tokio::spawn(async move {
@@ -456,7 +470,7 @@ impl SshTunnelApp {
                                             .size(px(16.0))
                                             .rounded_full()
                                             .border_2()
-                                            .border_color(if is_publickey { rgb(0x3b82f6) } else { rgb(0xd1d5db) })
+                                            .border_color(if is_publickey { primary_color } else { border_color })
                                             .flex()
                                             .items_center()
                                             .justify_center()
@@ -465,14 +479,14 @@ impl SshTunnelApp {
                                                     div()
                                                         .size(px(8.0))
                                                         .rounded_full()
-                                                        .bg(rgb(0x3b82f6))
+                                                        .bg(primary_color)
                                                 )
                                             })
                                     )
                                     .child(
                                         Label::new("Public Key".to_string())
                                             .text_size(rems(0.85))
-                                            .text_color(if is_publickey { rgb(0x1e40af) } else { rgb(0x6b7280) })
+                                            .text_color(if is_publickey { text_color } else { muted_color })
                                     )
                             )
                     })
@@ -481,7 +495,7 @@ impl SshTunnelApp {
                 if is_publickey {
                     v_flex()
                         .gap_1()
-                        .child(Label::new("Private Key Path".to_string()).text_size(rems(0.85)).text_color(rgb(0x6b7280)))
+                        .child(Label::new("Private Key Path".to_string()).text_size(rems(0.85)).text_color(muted_color))
                         .child(Input::new(&self.private_key_path_input).cleanable(true))
                 } else {
                     v_flex()
@@ -501,8 +515,15 @@ impl SshTunnelApp {
     }
 
     /// Render tunnel mode section
-    fn render_tunnel_mode(&self) -> Div {
+    fn render_tunnel_mode(&self, cx: &mut Context<Self>) -> Div {
         use label::Label;
+
+        let theme = cx.theme();
+        let card_bg = theme.background;
+        let border_color = theme.border;
+        let text_color = theme.foreground;
+        let muted_bg = theme.muted;
+        let primary_color = theme.primary;
 
         let form_data = if let Ok(ui_state) = self.app_state.ui_state.try_read() {
             ui_state.form_data.clone()
@@ -513,9 +534,9 @@ impl SshTunnelApp {
         v_flex()
             .gap_4()
             .p_4()
-            .bg(rgb(0xffffff))
+            .bg(card_bg)
             .border_1()
-            .border_color(rgb(0xe5e7eb))
+            .border_color(border_color)
             .rounded_lg()
             .child(
                 h_flex()
@@ -529,28 +550,28 @@ impl SshTunnelApp {
                     .child(
                         Label::new("Tunnel Mode".to_string())
                             .text_size(rems(0.95))
-                            .text_color(rgb(0x374151))
+                            .text_color(text_color)
                     )
             )
             .child(
                 h_flex()
                     .gap_2()
                     .p_2()
-                    .bg(rgb(0xf9fafb))
+                    .bg(muted_bg)
                     .rounded_md()
-                    .child(self.render_mode_radio("Local (-L)", form_data.forwarding_type == "local", "local"))
-                    .child(self.render_mode_radio("Remote (-R)", form_data.forwarding_type == "remote", "remote"))
-                    .child(self.render_mode_radio("Dynamic (-D)", form_data.forwarding_type == "dynamic", "dynamic"))
+                    .child(self.render_mode_radio("Local (-L)", form_data.forwarding_type == "local", "local", card_bg, border_color, text_color, primary_color))
+                    .child(self.render_mode_radio("Remote (-R)", form_data.forwarding_type == "remote", "remote", card_bg, border_color, text_color, primary_color))
+                    .child(self.render_mode_radio("Dynamic (-D)", form_data.forwarding_type == "dynamic", "dynamic", card_bg, border_color, text_color, primary_color))
             )
             .child(
                 div()
                     .px_3()
                     .py_2()
                     .mt_1()
-                    .bg(rgb(0xf0f9ff))
+                    .bg(primary_color.opacity(0.1))
                     .rounded_md()
                     .text_sm()
-                    .text_color(rgb(0x0369a1))
+                    .text_color(text_color)
                     .child(match form_data.forwarding_type.as_str() {
                         "local" => "📥 Forward remote service to local port (e.g., access remote database locally)",
                         "remote" => "📤 Expose local service to remote server (e.g., share local dev server)",
@@ -560,7 +581,7 @@ impl SshTunnelApp {
             )
     }
 
-    fn render_mode_radio(&self, label: &str, selected: bool, mode: &str) -> impl IntoElement {
+    fn render_mode_radio(&self, label: &str, selected: bool, mode: &str, card_bg: Hsla, border_color: Hsla, text_color: Hsla, primary_color: Hsla) -> impl IntoElement {
         let app_state = self.app_state.clone();
         let mode = mode.to_string();
 
@@ -570,9 +591,9 @@ impl SshTunnelApp {
             .px_3()
             .py_2()
             .rounded_md()
-            .bg(if selected { rgb(0xdbeafe) } else { rgb(0xffffff) })
+            .bg(if selected { primary_color.opacity(0.2) } else { card_bg })
             .border_1()
-            .border_color(if selected { rgb(0x3b82f6) } else { rgb(0xe5e7eb) })
+            .border_color(if selected { primary_color } else { border_color })
             .on_mouse_down(gpui::MouseButton::Left, move |_event, _window, _app| {
                 let app_state = app_state.clone();
                 let mode = mode.clone();
@@ -590,7 +611,7 @@ impl SshTunnelApp {
                             .size(px(14.0))
                             .rounded_full()
                             .border_2()
-                            .border_color(if selected { rgb(0x3b82f6) } else { rgb(0xd1d5db) })
+                            .border_color(if selected { primary_color } else { border_color })
                             .flex()
                             .items_center()
                             .justify_center()
@@ -599,22 +620,29 @@ impl SshTunnelApp {
                                     div()
                                         .size(px(6.0))
                                         .rounded_full()
-                                        .bg(rgb(0x3b82f6))
+                                        .bg(primary_color)
                                 )
                             })
                     )
                     .child(
                         div()
                             .text_sm()
-                            .text_color(if selected { rgb(0x1e40af) } else { rgb(0x374151) })
+                            .text_color(text_color)
                             .child(label.to_string())
                     )
             )
     }
 
     /// Render forward rules section based on tunnel mode
-    fn render_forward_rules(&self) -> Div {
+    fn render_forward_rules(&self, cx: &mut Context<Self>) -> Div {
         use label::Label;
+
+        let theme = cx.theme();
+        let card_bg = theme.background;
+        let border_color = theme.border;
+        let text_color = theme.foreground;
+        let muted_color = theme.muted_foreground;
+        let muted_bg = theme.muted;
 
         let form_data = if let Ok(ui_state) = self.app_state.ui_state.try_read() {
             ui_state.form_data.clone()
@@ -628,9 +656,9 @@ impl SshTunnelApp {
         v_flex()
             .gap_4()
             .p_4()
-            .bg(rgb(0xffffff))
+            .bg(card_bg)
             .border_1()
-            .border_color(rgb(0xe5e7eb))
+            .border_color(border_color)
             .rounded_lg()
             .child(
                 h_flex()
@@ -644,7 +672,7 @@ impl SshTunnelApp {
                     .child(
                         Label::new("Port Forwarding".to_string())
                             .text_size(rems(0.95))
-                            .text_color(rgb(0x374151))
+                            .text_color(text_color)
                     )
             )
             .child(
@@ -657,7 +685,7 @@ impl SshTunnelApp {
                             .child(
                                 Label::new(if is_dynamic { "SOCKS Proxy Settings" } else { "Local Binding" }.to_string())
                                     .text_size(rems(0.85))
-                                    .text_color(rgb(0x6b7280))
+                                    .text_color(muted_color)
                             )
                             .child(
                                 h_flex()
@@ -666,14 +694,14 @@ impl SshTunnelApp {
                                         v_flex()
                                             .flex_1()
                                             .gap_1()
-                                            .child(Label::new("Bind Address".to_string()).text_size(rems(0.8)).text_color(rgb(0x9ca3af)))
+                                            .child(Label::new("Bind Address".to_string()).text_size(rems(0.8)).text_color(muted_color))
                                             .child(Input::new(&self.bind_address_input).cleanable(true))
                                     )
                                     .child(
                                         v_flex()
                                             .w(px(120.0))
                                             .gap_1()
-                                            .child(Label::new("Port".to_string()).text_size(rems(0.8)).text_color(rgb(0x9ca3af)))
+                                            .child(Label::new("Port".to_string()).text_size(rems(0.8)).text_color(muted_color))
                                             .child(Input::new(&self.local_port_input).cleanable(true))
                                     )
                             )
@@ -691,10 +719,10 @@ impl SshTunnelApp {
                                             div()
                                                 .px_4()
                                                 .py_1()
-                                                .bg(rgb(0xf3f4f6))
+                                                .bg(muted_bg)
                                                 .rounded_full()
                                                 .text_sm()
-                                                .text_color(rgb(0x6b7280))
+                                                .text_color(muted_color)
                                                 .child(if is_remote { "⬆️ to Remote" } else { "⬇️ from Remote" })
                                         )
                                 )
@@ -705,14 +733,14 @@ impl SshTunnelApp {
                                             v_flex()
                                                 .flex_1()
                                                 .gap_1()
-                                                .child(Label::new(if is_remote { "Local Host" } else { "Remote Host" }.to_string()).text_size(rems(0.8)).text_color(rgb(0x9ca3af)))
+                                                .child(Label::new(if is_remote { "Local Host" } else { "Remote Host" }.to_string()).text_size(rems(0.8)).text_color(muted_color))
                                                 .child(Input::new(&self.remote_host_input).cleanable(true))
                                         )
                                         .child(
                                             v_flex()
                                                 .w(px(120.0))
                                                 .gap_1()
-                                                .child(Label::new("Port".to_string()).text_size(rems(0.8)).text_color(rgb(0x9ca3af)))
+                                                .child(Label::new("Port".to_string()).text_size(rems(0.8)).text_color(muted_color))
                                                 .child(Input::new(&self.remote_port_input).cleanable(true))
                                         )
                                 )
@@ -724,10 +752,10 @@ impl SshTunnelApp {
                             div()
                                 .px_3()
                                 .py_2()
-                                .bg(rgb(0xecfdf5))
+                                .bg(gpui::hsla(160.0 / 360.0, 0.84, 0.39, 0.2))  // Green with opacity
                                 .rounded_md()
                                 .text_sm()
-                                .text_color(rgb(0x059669))
+                                .text_color(text_color)
                                 .child("SOCKS5 proxy will be available at the bind address and port above")
                         )
                     })
@@ -735,8 +763,16 @@ impl SshTunnelApp {
     }
 
     /// Render options section
-    fn render_options(&self) -> Div {
+    fn render_options(&self, cx: &mut Context<Self>) -> Div {
         use label::Label;
+
+        let theme = cx.theme();
+        let card_bg = theme.background;
+        let border_color = theme.border;
+        let text_color = theme.foreground;
+        let muted_color = theme.muted_foreground;
+        let muted_bg = theme.muted;
+        let success_color = gpui::hsla(142.0 / 360.0, 0.71, 0.45, 1.0);  // Green #22c55e as Hsla
 
         // Get current form data
         let (compression, quiet_mode) = if let Ok(ui_state) = self.app_state.ui_state.try_read() {
@@ -751,9 +787,9 @@ impl SshTunnelApp {
         v_flex()
             .gap_4()
             .p_4()
-            .bg(rgb(0xffffff))
+            .bg(card_bg)
             .border_1()
-            .border_color(rgb(0xe5e7eb))
+            .border_color(border_color)
             .rounded_lg()
             .child(
                 h_flex()
@@ -767,7 +803,7 @@ impl SshTunnelApp {
                     .child(
                         Label::new("Advanced Options".to_string())
                             .text_size(rems(0.95))
-                            .text_color(rgb(0x374151))
+                            .text_color(text_color)
                     )
             )
             .child(
@@ -784,15 +820,15 @@ impl SshTunnelApp {
                                     .cursor_pointer()
                                     .px_3()
                                     .py_2()
-                                    .bg(if compression { rgb(0xf0fdf4) } else { rgb(0xf9fafb) })
+                                    .bg(if compression { success_color.opacity(0.1) } else { muted_bg })
                                     .rounded_md()
                                     .child(
                                         div()
                                             .size(px(16.0))
                                             .rounded_sm()
                                             .border_1()
-                                            .border_color(if compression { rgb(0x22c55e) } else { rgb(0xd1d5db) })
-                                            .bg(if compression { rgb(0x22c55e) } else { rgb(0xffffff) })
+                                            .border_color(if compression { success_color } else { border_color })
+                                            .bg(if compression { success_color } else { card_bg })
                                             .flex()
                                             .items_center()
                                             .justify_center()
@@ -807,7 +843,7 @@ impl SshTunnelApp {
                                     )
                                     .child(Label::new("Compression".to_string())
                                         .text_size(rems(0.85))
-                                        .text_color(if compression { rgb(0x166534) } else { rgb(0x6b7280) }))
+                                        .text_color(if compression { text_color } else { muted_color }))
                             )
                             .on_mouse_down(gpui::MouseButton::Left, move |_event, _window, _app| {
                                 let app_state = app_state_compression.clone();
@@ -827,15 +863,15 @@ impl SshTunnelApp {
                                     .cursor_pointer()
                                     .px_3()
                                     .py_2()
-                                    .bg(if quiet_mode { rgb(0xf0fdf4) } else { rgb(0xf9fafb) })
+                                    .bg(if quiet_mode { success_color.opacity(0.1) } else { muted_bg })
                                     .rounded_md()
                                     .child(
                                         div()
                                             .size(px(16.0))
                                             .rounded_sm()
                                             .border_1()
-                                            .border_color(if quiet_mode { rgb(0x22c55e) } else { rgb(0xd1d5db) })
-                                            .bg(if quiet_mode { rgb(0x22c55e) } else { rgb(0xffffff) })
+                                            .border_color(if quiet_mode { success_color } else { border_color })
+                                            .bg(if quiet_mode { success_color } else { card_bg })
                                             .flex()
                                             .items_center()
                                             .justify_center()
@@ -850,7 +886,7 @@ impl SshTunnelApp {
                                     )
                                     .child(Label::new("Quiet Mode".to_string())
                                         .text_size(rems(0.85))
-                                        .text_color(if quiet_mode { rgb(0x166534) } else { rgb(0x6b7280) }))
+                                        .text_color(if quiet_mode { text_color } else { muted_color }))
                             )
                             .on_mouse_down(gpui::MouseButton::Left, move |_event, _window, _app| {
                                 let app_state = app_state_quiet.clone();
@@ -2444,11 +2480,11 @@ impl SshTunnelApp {
                             .w_full()
                             .p_4()
                             .pb_8()
-                            .child(self.render_host_info())
-                            .child(self.render_authentication())
-                            .child(self.render_tunnel_mode())
-                            .child(self.render_forward_rules())
-                            .child(self.render_options())
+                            .child(self.render_host_info(cx))
+                            .child(self.render_authentication(cx))
+                            .child(self.render_tunnel_mode(cx))
+                            .child(self.render_forward_rules(cx))
+                            .child(self.render_options(cx))
                     )
             )
             // Active sessions panel
