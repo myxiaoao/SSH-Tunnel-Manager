@@ -1,0 +1,64 @@
+[package]
+name = "ssh-tunnel-manager"
+version = "0.1.0"
+edition = "2021"
+authors = ["Cooper"]
+description = "A modern SSH tunnel and port forwarding manager with GUI"
+license = "MIT OR Apache-2.0"
+
+[features]
+default = []
+gui = ["dep:gpui", "dep:gpui-component"]
+
+[dependencies]
+# GPUI framework (requires Rust 1.87+ and Xcode Command Line Tools)
+# Use macos-blade feature to avoid needing full Xcode (uses WebGPU instead of Metal)
+gpui = { version = "0.2.2", optional = true, features = ["macos-blade"] }
+gpui-component = { version = "0.5.0-preview2", optional = true }
+
+# CLI framework
+clap = { version = "4.5", features = ["derive", "cargo"] }
+dialoguer = "0.11"
+console = "0.15"
+indicatif = "0.17"
+
+# SSH (Pure Rust) - Upgraded for forward-tcpip support
+russh = "0.55.0"
+# russh-keys version will be auto-selected by cargo to match russh
+
+# Async runtime
+tokio = { version = "1.42", features = ["rt-multi-thread", "macros", "sync", "time", "net", "fs"] }
+futures = "0.3"
+async-trait = "0.1"
+
+# Serialization & config
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+toml = "0.8"
+
+# Error handling
+anyhow = "1.0"
+thiserror = "1.0"
+
+# Internationalization (i18n)
+rust-i18n = "3"
+
+# Utilities
+uuid = { version = "1.11", features = ["v4", "serde"] }
+chrono = { version = "0.4", features = ["serde"] }
+directories = "5.0"
+dirs = "5.0"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+env_logger = "0.11"
+once_cell = "1.20"
+
+# Cryptography
+sha2 = "0.10"
+base64 = "0.21"
+russh-keys = "0.49.2"
+ssh-key = { version = "0.6.7", features = ["std"] }
+
+[dev-dependencies]
+tempfile = "3.23.0"
+tokio-test = "0.4"

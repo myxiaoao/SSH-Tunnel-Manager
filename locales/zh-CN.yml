@@ -1,0 +1,122 @@
+_version: 1
+
+app:
+  title: SSH 隧道管理器
+  new_connection: 新建连接
+  templates: 模板
+  active_sessions: 活动会话
+  saved_connections: 已保存的连接
+  settings: 设置
+
+connection:
+  name: 名称
+  host: 主机
+  port: 端口
+  username: 用户名
+  auth_method: 认证方式
+  password: 密码
+  public_key: 公钥
+  private_key_path: 私钥路径
+  passphrase: 密钥密码
+  idle_timeout: 空闲超时（秒）
+  no_connections: 还没有保存的连接
+  saved_successfully: 连接保存成功！
+  connecting: 正在连接
+  passphrase_required: 私钥需要密码吗？
+  enter_password: 请输入密码
+  enter_passphrase: 请输入密钥密码
+
+forwarding:
+  type: 转发类型
+  local: 本地转发
+  remote: 远程转发
+  dynamic: 动态转发
+  local_port: 本地端口
+  remote_host: 远程主机
+  remote_port: 远程端口
+  bind_address: 绑定地址
+  add_forwarding: 添加转发规则
+  title: 端口转发
+  select_type: 选择转发类型
+
+auth:
+  method_password: 密码认证
+  method_publickey: 公钥认证
+  password: 密码认证
+  public_key: 公钥认证
+
+actions:
+  connect: 连接
+  connecting: 正在连接...
+  disconnect: 断开
+  save: 保存
+  cancel: 取消
+  delete: 删除
+  edit: 编辑
+  add: 添加
+  remove: 移除
+  ok: 确定
+
+status:
+  connecting: 连接中...
+  connected: 已连接
+  disconnected: 已断开
+  idle: 空闲
+  error: 错误
+
+messages:
+  connection_success: 连接成功
+  connection_failed: "连接失败: {reason}"
+  port_in_use: "端口 {port} 已被占用"
+  invalid_port: "无效的端口号: {port}"
+  invalid_host: "无效的主机地址: {host}"
+  key_file_not_found: "找不到私钥文件: {path}"
+  key_file_permission: "私钥文件权限不正确，应该设置为 600"
+  session_idle_closed: "会话因空闲超时已关闭"
+  confirm_delete: "确定要删除连接 \"{name}\" 吗？"
+
+settings:
+  language:
+    title: 语言
+    chinese: 简体中文
+    english: English
+  theme:
+    title: 主题
+    light: 浅色
+    dark: 深色
+    auto: 自动
+
+template:
+  mysql: MySQL 数据库访问
+  postgresql: PostgreSQL 数据库访问
+  socks_proxy: SOCKS5 代理
+  web_debug: Web 调试端口
+  multi_service: 多服务转发
+
+menu:
+  main_menu: 主菜单
+  list_connections: 查看连接列表
+  add_connection: 添加新连接
+  connect: 连接到服务器
+  list_sessions: 查看活动会话
+  disconnect_session: 断开会话
+  templates: 查看模板
+  exit: 退出
+  goodbye: 再见！
+  select_connection: 选择要连接的服务器
+
+session:
+  no_active_sessions: 没有活动会话
+  select_to_disconnect: 选择要断开的会话
+  disconnected: 会话已断开
+
+message:
+  feature_coming_soon: 此功能即将推出...
+  not_implemented_yet: 此功能尚未实现
+
+errors:
+  ssh_connection: SSH 连接错误
+  auth_failed: 认证失败
+  tunnel_failed: 隧道创建失败
+  config_read: 配置读取失败
+  config_write: 配置保存失败

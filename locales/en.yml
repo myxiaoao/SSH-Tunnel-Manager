@@ -1,0 +1,94 @@
+_version: 1
+
+app:
+  title: SSH Tunnel Manager
+  new_connection: New Connection
+  templates: Templates
+  active_sessions: Active Sessions
+  saved_connections: Saved Connections
+  settings: Settings
+
+connection:
+  name: Name
+  host: Host
+  port: Port
+  username: Username
+  auth_method: Authentication Method
+  password: Password
+  public_key: Public Key
+  private_key_path: Private Key Path
+  passphrase: Passphrase
+  idle_timeout: Idle Timeout (seconds)
+  enter_password: "Enter Password"
+  enter_passphrase: "Enter Passphrase"
+  no_connections: No saved connections yet
+
+forwarding:
+  type: Forwarding Type
+  local: Local Forwarding
+  remote: Remote Forwarding
+  dynamic: Dynamic Forwarding
+  local_port: Local Port
+  remote_host: Remote Host
+  remote_port: Remote Port
+  bind_address: Bind Address
+  add_forwarding: Add Forwarding Rule
+
+auth:
+  method_password: Password Authentication
+  method_publickey: Public Key Authentication
+
+actions:
+  connect: Connect
+  connecting: Connecting...
+  disconnect: Disconnect
+  save: Save
+  cancel: Cancel
+  delete: Delete
+  edit: Edit
+  add: Add
+  remove: Remove
+  ok: OK
+
+status:
+  connecting: Connecting...
+  connected: Connected
+  disconnected: Disconnected
+  idle: Idle
+  error: Error
+
+messages:
+  connection_success: Connected successfully
+  connection_failed: "Connection failed: {reason}"
+  port_in_use: "Port {port} is already in use"
+  invalid_port: "Invalid port number: {port}"
+  invalid_host: "Invalid host address: {host}"
+  key_file_not_found: "Private key file not found: {path}"
+  key_file_permission: "Private key file permission incorrect, should be 600"
+  session_idle_closed: "Session closed due to idle timeout"
+  confirm_delete: "Are you sure you want to delete connection \"{name}\"?"
+
+settings:
+  language:
+    title: Language
+    chinese: 简体中文
+    english: English
+  theme:
+    title: Theme
+    light: Light
+    dark: Dark
+    auto: Auto
+
+template:
+  mysql: MySQL Database Access
+  postgresql: PostgreSQL Database Access
+  socks_proxy: SOCKS5 Proxy
+  web_debug: Web Debug Port
+  multi_service: Multi-Service Forwarding
+
+errors:
+  ssh_connection: SSH connection error
+  auth_failed: Authentication failed
+  tunnel_failed: Tunnel creation failed
+  config_read: Failed to read configuration
+  config_write: Failed to save configuration

@@ -1,0 +1,182 @@
+# SSH Tunnel Manager - Example Connections Configuration
+#
+# Copy this file to your configuration directory and modify as needed:
+# macOS: ~/Library/Application Support/com.sshtool.ssh-tunnel-manager/connections.toml
+# Linux: ~/.config/ssh-tunnel-manager/connections.toml
+# Windows: %APPDATA%\ssh-tunnel-manager\connections.toml
+
+# Example 1: MySQL Database Access (Password Auth)
+[[connections]]
+id = "11111111-1111-1111-1111-111111111111"
+name = "Production MySQL"
+host = "bastion.example.com"
+port = 22
+username = "deploy"
+created_at = "2025-12-07T00:00:00Z"
+updated_at = "2025-12-07T00:00:00Z"
+idle_timeout_seconds = 600  # 10 minutes
+
+[connections.auth_method]
+type = "Password"  # Will prompt for password when connecting
+
+[[connections.forwarding_configs]]
+type = "Local"
+local_port = 3306
+remote_host = "mysql.internal.example.com"
+remote_port = 3306
+bind_address = "127.0.0.1"
+
+# Example 2: PostgreSQL with Public Key
+[[connections]]
+id = "22222222-2222-2222-2222-222222222222"
+name = "Staging PostgreSQL"
+host = "staging-db.example.com"
+port = 22
+username = "postgres"
+created_at = "2025-12-07T00:00:00Z"
+updated_at = "2025-12-07T00:00:00Z"
+
+[connections.auth_method]
+type = "PublicKey"
+private_key_path = "~/.ssh/id_rsa_staging"
+passphrase_required = false
+
+[[connections.forwarding_configs]]
+type = "Local"
+local_port = 5432
+remote_host = "localhost"
+remote_port = 5432
+bind_address = "127.0.0.1"
+
+# Example 3: SOCKS5 Proxy
+[[connections]]
+id = "33333333-3333-3333-3333-333333333333"
+name = "SOCKS Proxy"
+host = "proxy.example.com"
+port = 22
+username = "user"
+created_at = "2025-12-07T00:00:00Z"
+updated_at = "2025-12-07T00:00:00Z"
+idle_timeout_seconds = 3600  # 1 hour
+
+[connections.auth_method]
+type = "PublicKey"
+private_key_path = "~/.ssh/id_ed25519"
+passphrase_required = false
+
+[[connections.forwarding_configs]]
+type = "Dynamic"
+local_port = 1080
+bind_address = "127.0.0.1"
+socks_version = "Socks5"
+
+# Example 4: Multi-Service Forwarding
+[[connections]]
+id = "44444444-4444-4444-4444-444444444444"
+name = "Development Stack"
+host = "dev.example.com"
+port = 22
+username = "developer"
+created_at = "2025-12-07T00:00:00Z"
+updated_at = "2025-12-07T00:00:00Z"
+
+[connections.auth_method]
+type = "Password"
+
+# Forward MySQL
+[[connections.forwarding_configs]]
+type = "Local"
+local_port = 3306
+remote_host = "mysql-dev"
+remote_port = 3306
+bind_address = "127.0.0.1"
+
+# Forward Redis
+[[connections.forwarding_configs]]
+type = "Local"
+local_port = 6379
+remote_host = "redis-dev"
+remote_port = 6379
+bind_address = "127.0.0.1"
+
+# Forward PostgreSQL
+[[connections.forwarding_configs]]
+type = "Local"
+local_port = 5432
+remote_host = "postgres-dev"
+remote_port = 5432
+bind_address = "127.0.0.1"
+
+# Example 5: Remote Port Forwarding (Expose local service)
+[[connections]]
+id = "55555555-5555-5555-5555-555555555555"
+name = "Share Local Web Server"
+host = "public-server.example.com"
+port = 22
+username = "web"
+created_at = "2025-12-07T00:00:00Z"
+updated_at = "2025-12-07T00:00:00Z"
+
+[connections.auth_method]
+type = "PublicKey"
+private_key_path = "~/.ssh/id_rsa"
+passphrase_required = true  # Will prompt for passphrase
+
+[[connections.forwarding_configs]]
+type = "Remote"
+remote_port = 8080  # Port on remote server
+local_host = "localhost"
+local_port = 3000  # Your local dev server
+
+# Example 6: Jump Host Configuration
+[[connections]]
+id = "66666666-6666-6666-6666-666666666666"
+name = "Through Bastion"
+host = "internal-server.local"
+port = 22
+username = "admin"
+created_at = "2025-12-07T00:00:00Z"
+updated_at = "2025-12-07T00:00:00Z"
+
+[connections.auth_method]
+type = "Password"
+
+# Jump hosts (connect through these first)
+[[connections.jump_hosts]]
+host = "bastion.example.com"
+port = 22
+username = "jump-user"
+
+[connections.jump_hosts.auth_method]
+type = "PublicKey"
+private_key_path = "~/.ssh/bastion_key"
+passphrase_required = false
+
+[[connections.forwarding_configs]]
+type = "Local"
+local_port = 22222
+remote_host = "localhost"
+remote_port = 22
+bind_address = "127.0.0.1"
+
+# Example 7: MongoDB Access
+[[connections]]
+id = "77777777-7777-7777-7777-777777777777"
+name = "Production MongoDB"
+host = "mongo-bastion.example.com"
+port = 22
+username = "mongo"
+created_at = "2025-12-07T00:00:00Z"
+updated_at = "2025-12-07T00:00:00Z"
+
+[connections.auth_method]
+type = "PublicKey"
+private_key_path = "~/.ssh/mongo_rsa"
+passphrase_required = false
+
+[[connections.forwarding_configs]]
+type = "Local"
+local_port = 27017
+remote_host = "mongo-primary.internal"
+remote_port = 27017
+bind_address = "127.0.0.1"
