@@ -22,6 +22,33 @@ connection:
   enter_password: "Enter Password"
   enter_passphrase: "Enter Passphrase"
   no_connections: No saved connections yet
+  host_info: Host Information
+  connection_name: Connection Name
+  host_address: Host Address
+  authentication: Authentication
+  tunnel_mode: Tunnel Mode
+  port_forwarding: Port Forwarding
+  advanced_options: Advanced Options
+  local_binding: Local Binding
+  socks_proxy_settings: SOCKS Proxy Settings
+  remote_destination: Remote Destination
+  compression: Compression
+  quiet_mode: Quiet Mode
+  password_hint: Password will be requested when connecting
+  socks5_hint: SOCKS5 proxy will be available at the bind address and port above
+  local_mode_hint: "Forward remote service to local port (e.g., access remote database locally)"
+  remote_mode_hint: "Expose local service to remote server (e.g., share local dev server)"
+  dynamic_mode_hint: "SOCKS5 proxy for dynamic port forwarding"
+  to_remote: to Remote
+  from_remote: from Remote
+  local_host: Local Host
+  connections: Connections
+  no_matching: No matching connections
+  click_new: Click + New to add one
+  editing: Editing
+  not_connected: Not Connected
+  fill_details: Fill in the details and click Save
+  update_hint: Update the connection or click Connect
 
 forwarding:
   type: Forwarding Type

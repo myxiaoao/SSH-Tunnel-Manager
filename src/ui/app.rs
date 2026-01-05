@@ -319,7 +319,7 @@ impl SshTunnelApp {
                             .child("🖥️")
                     )
                     .child(
-                        Label::new("Host Information".to_string())
+                        Label::new(t!("connection.host_info").to_string())
                             .text_size(rems(0.95))
                             .text_color(text_color)
                     )
@@ -327,7 +327,7 @@ impl SshTunnelApp {
             .child(
                 v_flex()
                     .gap_2()
-                    .child(Label::new("Connection Name".to_string()).text_size(rems(0.85)).text_color(muted_color))
+                    .child(Label::new(t!("connection.connection_name").to_string()).text_size(rems(0.85)).text_color(muted_color))
                     .child(Input::new(&self.name_input).cleanable(true))
             )
             .child(
@@ -337,21 +337,21 @@ impl SshTunnelApp {
                         v_flex()
                             .flex_1()
                             .gap_2()
-                            .child(Label::new("Host Address".to_string()).text_size(rems(0.85)).text_color(muted_color))
+                            .child(Label::new(t!("connection.host_address").to_string()).text_size(rems(0.85)).text_color(muted_color))
                             .child(Input::new(&self.host_input).cleanable(true))
                     )
                     .child(
                         v_flex()
                             .w(px(100.0))
                             .gap_2()
-                            .child(Label::new("Port".to_string()).text_size(rems(0.85)).text_color(muted_color))
+                            .child(Label::new(t!("connection.port").to_string()).text_size(rems(0.85)).text_color(muted_color))
                             .child(Input::new(&self.port_input).cleanable(true))
                     )
             )
             .child(
                 v_flex()
                     .gap_2()
-                    .child(Label::new("Username".to_string()).text_size(rems(0.85)).text_color(muted_color))
+                    .child(Label::new(t!("connection.username").to_string()).text_size(rems(0.85)).text_color(muted_color))
                     .child(Input::new(&self.username_input).cleanable(true))
             )
     }
@@ -393,7 +393,7 @@ impl SshTunnelApp {
                             .child("🔐")
                     )
                     .child(
-                        Label::new("Authentication".to_string())
+                        Label::new(t!("connection.authentication").to_string())
                             .text_size(rems(0.95))
                             .text_color(text_color)
                     )
@@ -441,7 +441,7 @@ impl SshTunnelApp {
                                             })
                                     )
                                     .child(
-                                        Label::new("Password".to_string())
+                                        Label::new(t!("connection.password").to_string())
                                             .text_size(rems(0.85))
                                             .text_color(if !is_publickey { text_color } else { muted_color })
                                     )
@@ -484,7 +484,7 @@ impl SshTunnelApp {
                                             })
                                     )
                                     .child(
-                                        Label::new("Public Key".to_string())
+                                        Label::new(t!("connection.public_key").to_string())
                                             .text_size(rems(0.85))
                                             .text_color(if is_publickey { text_color } else { muted_color })
                                     )
@@ -495,7 +495,7 @@ impl SshTunnelApp {
                 if is_publickey {
                     v_flex()
                         .gap_1()
-                        .child(Label::new("Private Key Path".to_string()).text_size(rems(0.85)).text_color(muted_color))
+                        .child(Label::new(t!("connection.private_key_path").to_string()).text_size(rems(0.85)).text_color(muted_color))
                         .child(Input::new(&self.private_key_path_input).cleanable(true))
                 } else {
                     v_flex()
@@ -508,7 +508,7 @@ impl SshTunnelApp {
                                 .rounded_md()
                                 .text_sm()
                                 .text_color(rgb(0x92400e))
-                                .child("Password will be requested when connecting")
+                                .child(t!("connection.password_hint").to_string())
                         )
                 }
             )
@@ -548,7 +548,7 @@ impl SshTunnelApp {
                             .child("🔀")
                     )
                     .child(
-                        Label::new("Tunnel Mode".to_string())
+                        Label::new(t!("connection.tunnel_mode").to_string())
                             .text_size(rems(0.95))
                             .text_color(text_color)
                     )
@@ -559,9 +559,9 @@ impl SshTunnelApp {
                     .p_2()
                     .bg(muted_bg)
                     .rounded_md()
-                    .child(self.render_mode_radio("Local (-L)", form_data.forwarding_type == "local", "local", card_bg, border_color, text_color, primary_color))
-                    .child(self.render_mode_radio("Remote (-R)", form_data.forwarding_type == "remote", "remote", card_bg, border_color, text_color, primary_color))
-                    .child(self.render_mode_radio("Dynamic (-D)", form_data.forwarding_type == "dynamic", "dynamic", card_bg, border_color, text_color, primary_color))
+                    .child(self.render_mode_radio(&format!("{} (-L)", t!("forwarding.local")), form_data.forwarding_type == "local", "local", card_bg, border_color, text_color, primary_color))
+                    .child(self.render_mode_radio(&format!("{} (-R)", t!("forwarding.remote")), form_data.forwarding_type == "remote", "remote", card_bg, border_color, text_color, primary_color))
+                    .child(self.render_mode_radio(&format!("{} (-D)", t!("forwarding.dynamic")), form_data.forwarding_type == "dynamic", "dynamic", card_bg, border_color, text_color, primary_color))
             )
             .child(
                 div()
@@ -573,10 +573,10 @@ impl SshTunnelApp {
                     .text_sm()
                     .text_color(text_color)
                     .child(match form_data.forwarding_type.as_str() {
-                        "local" => "📥 Forward remote service to local port (e.g., access remote database locally)",
-                        "remote" => "📤 Expose local service to remote server (e.g., share local dev server)",
-                        "dynamic" => "🌐 SOCKS5 proxy for dynamic port forwarding",
-                        _ => ""
+                        "local" => format!("📥 {}", t!("connection.local_mode_hint")),
+                        "remote" => format!("📤 {}", t!("connection.remote_mode_hint")),
+                        "dynamic" => format!("🌐 {}", t!("connection.dynamic_mode_hint")),
+                        _ => String::new()
                     })
             )
     }
@@ -670,7 +670,7 @@ impl SshTunnelApp {
                             .child("📡")
                     )
                     .child(
-                        Label::new("Port Forwarding".to_string())
+                        Label::new(t!("connection.port_forwarding").to_string())
                             .text_size(rems(0.95))
                             .text_color(text_color)
                     )
@@ -683,7 +683,7 @@ impl SshTunnelApp {
                         v_flex()
                             .gap_2()
                             .child(
-                                Label::new(if is_dynamic { "SOCKS Proxy Settings" } else { "Local Binding" }.to_string())
+                                Label::new(if is_dynamic { t!("connection.socks_proxy_settings").to_string() } else { t!("connection.local_binding").to_string() })
                                     .text_size(rems(0.85))
                                     .text_color(muted_color)
                             )
@@ -694,14 +694,14 @@ impl SshTunnelApp {
                                         v_flex()
                                             .flex_1()
                                             .gap_1()
-                                            .child(Label::new("Bind Address".to_string()).text_size(rems(0.8)).text_color(muted_color))
+                                            .child(Label::new(t!("forwarding.bind_address").to_string()).text_size(rems(0.8)).text_color(muted_color))
                                             .child(Input::new(&self.bind_address_input).cleanable(true))
                                     )
                                     .child(
                                         v_flex()
                                             .w(px(120.0))
                                             .gap_1()
-                                            .child(Label::new("Port".to_string()).text_size(rems(0.8)).text_color(muted_color))
+                                            .child(Label::new(t!("connection.port").to_string()).text_size(rems(0.8)).text_color(muted_color))
                                             .child(Input::new(&self.local_port_input).cleanable(true))
                                     )
                             )
@@ -723,7 +723,7 @@ impl SshTunnelApp {
                                                 .rounded_full()
                                                 .text_sm()
                                                 .text_color(muted_color)
-                                                .child(if is_remote { "⬆️ to Remote" } else { "⬇️ from Remote" })
+                                                .child(if is_remote { format!("⬆️ {}", t!("connection.to_remote")) } else { format!("⬇️ {}", t!("connection.from_remote")) })
                                         )
                                 )
                                 .child(
@@ -733,14 +733,14 @@ impl SshTunnelApp {
                                             v_flex()
                                                 .flex_1()
                                                 .gap_1()
-                                                .child(Label::new(if is_remote { "Local Host" } else { "Remote Host" }.to_string()).text_size(rems(0.8)).text_color(muted_color))
+                                                .child(Label::new(if is_remote { t!("connection.local_host").to_string() } else { t!("forwarding.remote_host").to_string() }).text_size(rems(0.8)).text_color(muted_color))
                                                 .child(Input::new(&self.remote_host_input).cleanable(true))
                                         )
                                         .child(
                                             v_flex()
                                                 .w(px(120.0))
                                                 .gap_1()
-                                                .child(Label::new("Port".to_string()).text_size(rems(0.8)).text_color(muted_color))
+                                                .child(Label::new(t!("connection.port").to_string()).text_size(rems(0.8)).text_color(muted_color))
                                                 .child(Input::new(&self.remote_port_input).cleanable(true))
                                         )
                                 )
@@ -756,7 +756,7 @@ impl SshTunnelApp {
                                 .rounded_md()
                                 .text_sm()
                                 .text_color(text_color)
-                                .child("SOCKS5 proxy will be available at the bind address and port above")
+                                .child(t!("connection.socks5_hint").to_string())
                         )
                     })
             )
@@ -801,7 +801,7 @@ impl SshTunnelApp {
                             .child("⚙️")
                     )
                     .child(
-                        Label::new("Advanced Options".to_string())
+                        Label::new(t!("connection.advanced_options").to_string())
                             .text_size(rems(0.95))
                             .text_color(text_color)
                     )
@@ -841,7 +841,7 @@ impl SshTunnelApp {
                                                 )
                                             })
                                     )
-                                    .child(Label::new("Compression".to_string())
+                                    .child(Label::new(t!("connection.compression").to_string())
                                         .text_size(rems(0.85))
                                         .text_color(if compression { text_color } else { muted_color }))
                             )
@@ -884,7 +884,7 @@ impl SshTunnelApp {
                                                 )
                                             })
                                     )
-                                    .child(Label::new("Quiet Mode".to_string())
+                                    .child(Label::new(t!("connection.quiet_mode").to_string())
                                         .text_size(rems(0.85))
                                         .text_color(if quiet_mode { text_color } else { muted_color }))
                             )

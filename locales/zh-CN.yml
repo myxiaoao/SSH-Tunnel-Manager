@@ -25,6 +25,33 @@ connection:
   passphrase_required: 私钥需要密码吗？
   enter_password: 请输入密码
   enter_passphrase: 请输入密钥密码
+  host_info: 主机信息
+  connection_name: 连接名称
+  host_address: 主机地址
+  authentication: 认证方式
+  tunnel_mode: 隧道模式
+  port_forwarding: 端口转发
+  advanced_options: 高级选项
+  local_binding: 本地绑定
+  socks_proxy_settings: SOCKS代理设置
+  remote_destination: 远程目标
+  compression: 压缩
+  quiet_mode: 静默模式
+  password_hint: 连接时将请求密码
+  socks5_hint: SOCKS5代理将在上述绑定地址和端口上可用
+  local_mode_hint: "将远程服务转发到本地端口（例如：本地访问远程数据库）"
+  remote_mode_hint: "将本地服务暴露到远程服务器（例如：共享本地开发服务器）"
+  dynamic_mode_hint: "动态端口转发的SOCKS5代理"
+  to_remote: 到远程
+  from_remote: 从远程
+  local_host: 本地主机
+  connections: 连接
+  no_matching: 没有匹配的连接
+  click_new: 点击 + 新建 添加一个
+  editing: 编辑中
+  not_connected: 未连接
+  fill_details: 填写详情并点击保存
+  update_hint: 更新连接或点击连接
 
 forwarding:
   type: 转发类型
