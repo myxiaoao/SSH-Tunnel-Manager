@@ -40,8 +40,8 @@ connection:
   local_binding: 本地绑定
   socks_proxy_settings: SOCKS代理设置
   remote_destination: 远程目标
-  compression: 压缩
-  quiet_mode: 静默模式
+  compression: 压缩 (-C)
+  quiet_mode: 静默模式 (-q)
   password_hint: 连接时将请求密码
   socks5_hint: SOCKS5代理将在上述绑定地址和端口上可用
   local_mode_hint: "将远程服务转发到本地端口（例如：本地访问远程数据库）"
@@ -100,7 +100,7 @@ status:
   disconnected: 已断开
   idle: 空闲
   error: 错误
-  active: "{count} 活动"
+  active: "%{count} 活动"
 
 messages:
   connection_success: 连接成功

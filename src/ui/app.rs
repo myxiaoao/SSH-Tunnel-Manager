@@ -8,8 +8,8 @@ use gpui_component::ActiveTheme;
 use rust_i18n::t;
 use std::sync::Arc;
 
-use crate::state::{AppState, ErrorSeverity};
-use crate::models::auth::AuthMethod;
+use ssh_tunnel_manager::state::{AppState, ErrorSeverity, ConnectionFormData};
+use ssh_tunnel_manager::models::auth::AuthMethod;
 
 /// Main application window with editable form inputs
 pub struct SshTunnelApp {
@@ -91,6 +91,16 @@ impl SshTunnelApp {
         let session_manager = app_state.session_manager.clone();
         tokio::spawn(async move {
             session_manager.start_idle_monitor().await;
+        });
+
+        // Start background task to refresh sessions (for traffic stats updates)
+        let app_state_refresh = app_state.clone();
+        tokio::spawn(async move {
+            let mut interval = tokio::time::interval(std::time::Duration::from_secs(2));
+            loop {
+                interval.tick().await;
+                let _ = app_state_refresh.reload_sessions().await;
+            }
         });
 
         // Create search input for sidebar
@@ -381,7 +391,7 @@ impl SshTunnelApp {
         let form_data = if let Ok(ui_state) = self.app_state.ui_state.try_read() {
             ui_state.form_data.clone()
         } else {
-            crate::state::ConnectionFormData::default()
+            ConnectionFormData::default()
         };
 
         let is_publickey = form_data.auth_type == "publickey";
@@ -535,7 +545,7 @@ impl SshTunnelApp {
         let form_data = if let Ok(ui_state) = self.app_state.ui_state.try_read() {
             ui_state.form_data.clone()
         } else {
-            crate::state::ConnectionFormData::default()
+            ConnectionFormData::default()
         };
 
         v_flex()
@@ -647,7 +657,7 @@ impl SshTunnelApp {
         let form_data = if let Ok(ui_state) = self.app_state.ui_state.try_read() {
             ui_state.form_data.clone()
         } else {
-            crate::state::ConnectionFormData::default()
+            ConnectionFormData::default()
         };
 
         let is_dynamic = form_data.forwarding_type == "dynamic";
@@ -1540,9 +1550,9 @@ impl SshTunnelApp {
                                         ""
                                     } else {
                                         match &conn.forwarding_configs[0] {
-                                            crate::models::forwarding::ForwardingConfig::Local(_) => "📥",
-                                            crate::models::forwarding::ForwardingConfig::Remote(_) => "📤",
-                                            crate::models::forwarding::ForwardingConfig::Dynamic(_) => "🌐",
+                                            ssh_tunnel_manager::models::forwarding::ForwardingConfig::Local(_) => "📥",
+                                            ssh_tunnel_manager::models::forwarding::ForwardingConfig::Remote(_) => "📤",
+                                            ssh_tunnel_manager::models::forwarding::ForwardingConfig::Dynamic(_) => "🌐",
                                         }
                                     };
 
@@ -1792,7 +1802,7 @@ impl SshTunnelApp {
                     ui_state.show_templates,
                 )
             } else {
-                (crate::state::ConnectionFormData::default(), None, None, false, false)
+                (ConnectionFormData::default(), None, None, false, false)
             };
 
         // Get active session count
@@ -1959,7 +1969,7 @@ impl SshTunnelApp {
                                                             Err(e) => {
                                                                 app_state.show_error(
                                                                     t!("messages.connection_failed", "reason" => e.to_string()).to_string(),
-                                                                    crate::state::ErrorSeverity::Error
+                                                                    ErrorSeverity::Error
                                                                 ).await;
                                                             }
                                                         }
@@ -2061,7 +2071,7 @@ impl SshTunnelApp {
                                                     tracing::error!("Failed to save connection: {}", e);
                                                     app_state.show_error(
                                                         t!("messages.save_failed", "reason" => e.to_string()).to_string(),
-                                                        crate::state::ErrorSeverity::Error
+                                                        ErrorSeverity::Error
                                                     ).await;
                                                 }
                                             }
@@ -2098,7 +2108,7 @@ impl SshTunnelApp {
                                                                     Err(e) => {
                                                                         app_state.show_error(
                                                                             t!("messages.connection_failed", "reason" => e.to_string()).to_string(),
-                                                                            crate::state::ErrorSeverity::Error
+                                                                            ErrorSeverity::Error
                                                                         ).await;
                                                                     }
                                                                 }

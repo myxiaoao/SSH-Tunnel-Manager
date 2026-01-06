@@ -250,7 +250,12 @@ impl SessionManager {
 
     /// Get active session information
     pub async fn get_session(&self, session_id: uuid::Uuid) -> Result<ActiveSession> {
-        let sessions = self.sessions.read().await;
+        let mut sessions = self.sessions.write().await;
+
+        // Sync traffic before returning
+        if let Some(data) = sessions.get_mut(&session_id) {
+            data.sync_traffic_from_tunnels();
+        }
 
         sessions
             .get(&session_id)
@@ -260,7 +265,13 @@ impl SessionManager {
 
     /// Get all active sessions
     pub async fn list_sessions(&self) -> Vec<ActiveSession> {
-        let sessions = self.sessions.read().await;
+        // Use write lock to sync traffic before returning
+        let mut sessions = self.sessions.write().await;
+
+        // Sync traffic statistics from all tunnel handles
+        for data in sessions.values_mut() {
+            data.sync_traffic_from_tunnels();
+        }
 
         sessions
             .iter()

@@ -37,8 +37,8 @@ connection:
   local_binding: Local Binding
   socks_proxy_settings: SOCKS Proxy Settings
   remote_destination: Remote Destination
-  compression: Compression
-  quiet_mode: Quiet Mode
+  compression: Compression (-C)
+  quiet_mode: Quiet Mode (-q)
   password_hint: Password will be requested when connecting
   socks5_hint: SOCKS5 proxy will be available at the bind address and port above
   local_mode_hint: "Forward remote service to local port (e.g., access remote database locally)"
@@ -93,7 +93,7 @@ status:
   disconnected: Disconnected
   idle: Idle
   error: Error
-  active: "{count} Active"
+  active: "%{count} Active"
 
 messages:
   connection_success: Connected successfully
