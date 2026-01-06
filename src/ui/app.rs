@@ -1,6 +1,7 @@
 use gpui::*;
 use gpui::prelude::FluentBuilder;
 use gpui_component::*;
+use gpui_component::button::ButtonVariants;
 use gpui_component::input::{Input, InputEvent, InputState};
 use gpui_component::scroll::ScrollableElement;
 use gpui_component::ActiveTheme;
@@ -375,7 +376,6 @@ impl SshTunnelApp {
         let border_color = theme.border;
         let text_color = theme.foreground;
         let muted_color = theme.muted_foreground;
-        let muted_bg = theme.muted;
         let primary_color = theme.primary;
 
         let form_data = if let Ok(ui_state) = self.app_state.ui_state.try_read() {
@@ -530,7 +530,6 @@ impl SshTunnelApp {
         let border_color = theme.border;
         let text_color = theme.foreground;
         let muted_color = theme.muted_foreground;
-        let _muted_bg = theme.muted;
         let primary_color = theme.primary;
 
         let form_data = if let Ok(ui_state) = self.app_state.ui_state.try_read() {
@@ -644,7 +643,6 @@ impl SshTunnelApp {
         let border_color = theme.border;
         let text_color = theme.foreground;
         let muted_color = theme.muted_foreground;
-        let muted_bg = theme.muted;
 
         let form_data = if let Ok(ui_state) = self.app_state.ui_state.try_read() {
             ui_state.form_data.clone()
@@ -902,7 +900,6 @@ impl SshTunnelApp {
         let border_color = theme.border;
         let text_color = theme.foreground;
         let muted_color = theme.muted_foreground;
-        let _primary_color = theme.primary;
 
         let templates = vec![
             ("mysql", t!("template.mysql_name").to_string(), t!("template.mysql_desc").to_string()),
@@ -992,134 +989,6 @@ impl SshTunnelApp {
                         })
                     )
             )
-    }
-
-    /// Helper: Handle connection button click
-    fn handle_connect_click(
-        app_state: Arc<AppState>,
-        connection: crate::models::connection::SshConnection,
-    ) {
-        tracing::info!("Connect button clicked for: {}", connection.name);
-
-        // Check authentication method
-        match &connection.auth_method {
-            AuthMethod::Password => {
-                tracing::info!("Auth method is Password, showing inline input");
-                // Show inline password input
-                let conn_id = connection.id;
-                tokio::spawn(async move {
-                    app_state.show_password_input(conn_id).await;
-                });
-            }
-            AuthMethod::PublicKey { passphrase_required, .. } => {
-                if *passphrase_required {
-                    tracing::info!("Auth method is PublicKey with passphrase, showing inline input");
-                    // Show inline passphrase input
-                    let conn_id = connection.id;
-                    tokio::spawn(async move {
-                        app_state.show_password_input(conn_id).await;
-                    });
-                } else {
-                    tracing::info!("Auth method is PublicKey without passphrase, connecting directly");
-                    // Connect without password
-                    Self::connect_without_password(app_state, connection.id);
-                }
-            }
-        }
-    }
-
-    /// Create a test connection for demonstration
-    fn create_test_connection(&self) {
-        use crate::models::connection::SshConnection;
-        use crate::models::auth::AuthMethod;
-        use crate::models::forwarding::{ForwardingConfig, LocalForwarding, DynamicForwarding};
-        use chrono::Utc;
-
-        let app_state = self.app_state.clone();
-
-        tokio::spawn(async move {
-            // Create a sample MySQL connection
-            let mysql_conn = SshConnection {
-                id: uuid::Uuid::new_v4(),
-                name: "Production MySQL".to_string(),
-                host: "jump.example.com".to_string(),
-                port: 22,
-                username: "admin".to_string(),
-                auth_method: AuthMethod::Password,
-                forwarding_configs: vec![
-                    ForwardingConfig::Local(LocalForwarding {
-                        local_port: 13306,
-                        remote_host: "10.0.0.5".to_string(),
-                        remote_port: 3306,
-                        bind_address: "127.0.0.1".to_string(),
-                    }),
-                ],
-                jump_hosts: vec![],
-                idle_timeout_seconds: Some(300),
-                host_key_fingerprint: None,
-                verify_host_key: false,
-                compression: true,
-                quiet_mode: false,
-                created_at: Utc::now(),
-                updated_at: Utc::now(),
-            };
-
-            if let Err(e) = app_state.save_connection(&mysql_conn).await {
-                tracing::error!("Failed to save test connection: {}", e);
-            } else {
-                tracing::info!("Test connection created: {}", mysql_conn.name);
-            }
-
-            // Create a sample SOCKS proxy connection
-            let socks_conn = SshConnection {
-                id: uuid::Uuid::new_v4(),
-                name: "SOCKS5 Proxy".to_string(),
-                host: "proxy.example.com".to_string(),
-                port: 22,
-                username: "user".to_string(),
-                auth_method: AuthMethod::PublicKey {
-                    private_key_path: std::path::PathBuf::from("~/.ssh/id_rsa"),
-                    passphrase_required: false,
-                },
-                forwarding_configs: vec![
-                    ForwardingConfig::Dynamic(DynamicForwarding {
-                        local_port: 2025,
-                        bind_address: "127.0.0.1".to_string(),
-                        socks_version: crate::models::forwarding::SocksVersion::Socks5,
-                    }),
-                ],
-                jump_hosts: vec![],
-                idle_timeout_seconds: Some(300),
-                host_key_fingerprint: None,
-                verify_host_key: false,
-                compression: true,
-                quiet_mode: false,
-                created_at: Utc::now(),
-                updated_at: Utc::now(),
-            };
-
-            if let Err(e) = app_state.save_connection(&socks_conn).await {
-                tracing::error!("Failed to save SOCKS connection: {}", e);
-            } else {
-                tracing::info!("SOCKS connection created: {}", socks_conn.name);
-            }
-        });
-    }
-
-    /// Connect without password (public key without passphrase)
-    fn connect_without_password(app_state: Arc<AppState>, connection_id: uuid::Uuid) {
-        tracing::info!("Connecting without password: {}", connection_id);
-
-        tokio::spawn(async move {
-            match app_state.connect_session(connection_id, None).await {
-                Ok(session_id) => {
-                    tracing::info!("Successfully connected, session: {}", session_id);
-                }
-                Err(e) => {
-                    tracing::error!("Connection failed: {}", e);
-                }
-            }
-        });
     }
 
     /// Helper: Format bytes to human-readable string
@@ -1219,7 +1088,7 @@ impl SshTunnelApp {
                                     )
                             )
                             .child({
-                                use button::{Button, ButtonVariants};
+                                use button::Button;
                                 Button::new("close_error")
                                     .label("×".to_string())
                                     .on_click(move |_, _, _| {
@@ -1261,7 +1130,7 @@ impl SshTunnelApp {
                                     )
                             )
                             .child({
-                                use button::{Button, ButtonVariants};
+                                use button::Button;
                                 Button::new("close_success")
                                     .label("×".to_string())
                                     .on_click(move |_, _, _| {
@@ -1280,7 +1149,7 @@ impl SshTunnelApp {
 
     fn render_header(&self, cx: &mut Context<Self>) -> Div {
         use label::Label;
-        use button::{Button, ButtonVariants};
+        use button::Button;
 
         let theme = cx.theme();
         let header_bg = theme.sidebar;
@@ -1328,7 +1197,7 @@ impl SshTunnelApp {
                             .small()
                             .ghost()
                             .label(if language == "zh-CN" { "To English" } else { "切换中文" })
-                            .on_click(move |_, window, cx| {
+                            .on_click(move |_, window, _cx| {
                                 // Toggle language synchronously
                                 if let Ok(mut ui_state) = app_state.ui_state.try_write() {
                                     ui_state.language = if ui_state.language == "zh-CN" {
@@ -1374,422 +1243,10 @@ impl SshTunnelApp {
             )
     }
 
-    fn render_connection_list(&self) -> Div {
-        use label::Label;
-        use button::{Button, ButtonVariants};
-
-        // Read connections from app state
-        let connections = if let Ok(conns) = self.app_state.connections.try_read() {
-            conns.clone()
-        } else {
-            vec![]
-        };
-
-        // Read password input state
-        let password_input_state = if let Ok(ui) = self.app_state.ui_state.try_read() {
-            (ui.password_input_for, ui.password_value.clone())
-        } else {
-            (None, String::new())
-        };
-
-        v_flex()
-            .flex_1()
-            .p_4()
-            .bg(rgb(0xffffff))
-            .rounded_lg()
-            .shadow_sm()
-            .child(
-                v_flex()
-                    .gap_3()
-                    .flex_1()
-                    .child(
-                        Label::new(t!("app.saved_connections").to_string())
-                            .text_size(rems(1.2))
-                            .text_color(rgb(0x374151))
-                    )
-                    .child({
-                        // Connection list
-                        if connections.is_empty() {
-                            v_flex()
-                                .gap_2()
-                                .flex_1()
-                                .child(
-                                    v_flex()
-                                        .p_6()
-                                        .items_center()
-                                        .justify_center()
-                                        .text_center()
-                                        .child(
-                                            div()
-                                                .text_color(rgb(0x6b7280))
-                                                .child(t!("connection.no_connections").to_string())
-                                        )
-                                        .child(
-                                            div()
-                                                .mt_2()
-                                                .text_sm()
-                                                .text_color(rgb(0x9ca3af))
-                                                .child(t!("app.click_new_to_start").to_string())
-                                        )
-                                )
-                        } else {
-                            v_flex()
-                                .gap_2()
-                                .flex_1()
-                                .children(
-                                    connections.iter().map(|conn| {
-                                        self.render_connection_card(conn, password_input_state.0, password_input_state.1.clone())
-                                    })
-                                )
-                        }
-                    })
-            )
-    }
-
-    fn render_connection_card(
-        &self,
-        connection: &crate::models::connection::SshConnection,
-        password_input_for: Option<uuid::Uuid>,
-        _current_password: String,
-    ) -> Div {
-        use button::{Button, ButtonVariants};
-        use label::Label;
-
-        let conn_id = connection.id;
-        let app_state = self.app_state.clone();
-        let connection_for_button = connection.clone();
-        let app_state_for_delete = app_state.clone();
-        let showing_password_input = password_input_for == Some(connection.id);
-
-        // Check if this connection is currently connecting
-        let is_connecting = if let Ok(ui) = self.app_state.ui_state.try_read() {
-            ui.connecting_ids.contains(&connection.id)
-        } else {
-            false
-        };
-
-        v_flex()
-            .p_4()
-            .mb_3()
-            .bg(rgb(0xffffff))
-            .border_1()
-            .border_color(rgb(0xe5e7eb))
-            .rounded_lg()
-            .shadow_sm()
-            .child(
-                // Header: name and actions
-                h_flex()
-                    .justify_between()
-                    .items_center()
-                    .mb_3()
-                    .child(
-                        Label::new(connection.name.clone())
-                            .text_size(rems(1.1))
-                            .text_color(rgb(0x111827))
-                    )
-                    .child(
-                        h_flex()
-                            .gap_2()
-                            .child({
-                                let button_label = if is_connecting {
-                                    "⏳ ".to_string() + &t!("actions.connecting").to_string()
-                                } else {
-                                    t!("actions.connect").to_string()
-                                };
-
-                                let mut btn = Button::new("connect_btn")
-                                    .success()
-                                    .label(button_label);
-
-                                // Disable button if connecting
-                                if !is_connecting {
-                                    btn = btn.on_click(move |_, _, _| {
-                                        Self::handle_connect_click(app_state.clone(), connection_for_button.clone());
-                                    });
-                                }
-
-                                btn
-                            })
-                            .child(
-                                Button::new("delete_btn")
-                                    .danger()
-                                    .label(t!("actions.delete").to_string())
-                                    .on_click(move |_, _, _| {
-                                        let app_state = app_state_for_delete.clone();
-                                        tracing::info!("Delete connection {}", conn_id);
-
-                                        tokio::spawn(async move {
-                                            if let Err(e) = app_state.delete_connection(conn_id).await {
-                                                tracing::error!("Failed to delete connection: {}", e);
-                                            } else {
-                                                tracing::info!("Connection deleted successfully");
-                                            }
-                                        });
-                                    })
-                            )
-                    )
-            )
-            .child({
-                // Connection details
-                let mut details = v_flex()
-                    .gap_2()
-                    .child(
-                        h_flex()
-                            .gap_2()
-                            .items_center()
-                            .child(
-                                div()
-                                    .text_sm()
-                                    .text_color(rgb(0x6b7280))
-                                    .child(format!("{}@{}:{}",
-                                        connection.username,
-                                        connection.host,
-                                        connection.port
-                                    ))
-                            )
-                            .child(
-                                div()
-                                    .px_2()
-                                    .py_1()
-                                    .bg(rgb(0xeff6ff))
-                                    .text_color(rgb(0x1e40af))
-                                    .rounded_md()
-                                    .text_xs()
-                                    .child(
-                                        match &connection.auth_method {
-                                            crate::models::auth::AuthMethod::Password => t!("auth.method_password").to_string(),
-                                            crate::models::auth::AuthMethod::PublicKey { .. } => t!("auth.method_publickey").to_string(),
-                                        }
-                                    )
-                            )
-                    );
-
-                // Conditionally add forwarding configs
-                if !connection.forwarding_configs.is_empty() {
-                    details = details.child(
-                        v_flex()
-                            .gap_1()
-                            .mt_2()
-                            .p_2()
-                            .bg(rgb(0xf9fafb))
-                            .rounded_md()
-                            .children(
-                                connection.forwarding_configs.iter().map(|config| {
-                                    div()
-                                        .text_xs()
-                                        .text_color(rgb(0x374151))
-                                        .child(self.render_forwarding_info(config))
-                                })
-                            )
-                    );
-                }
-
-                details
-            })
-            .when(showing_password_input, |this| {
-                // Show inline password input
-                let app_state = self.app_state.clone();
-                let app_state_for_cancel = self.app_state.clone();
-                let conn_id = connection.id;
-                let is_passphrase = matches!(connection.auth_method, AuthMethod::PublicKey { .. });
-
-                this.child(
-                    v_flex()
-                        .gap_2()
-                        .mt_3()
-                        .p_3()
-                        .bg(rgb(0xf0fdf4))
-                        .border_1()
-                        .border_color(rgb(0x86efac))
-                        .rounded_md()
-                        .child(
-                            v_flex()
-                                .gap_1()
-                                .child(
-                                    Label::new(if is_passphrase {
-                                        t!("connection.enter_passphrase").to_string()
-                                    } else {
-                                        t!("connection.enter_password").to_string()
-                                    })
-                                    .text_size(rems(0.9))
-                                    .text_color(rgb(0x166534))
-                                )
-                                .child(
-                                    div()
-                                        .text_xs()
-                                        .text_color(rgb(0x059669))
-                                        .child(format!("⚠️ Using test password: 'test123' (For real connections, use public key authentication)"))
-                                )
-                        )
-                        .child(
-                            h_flex()
-                                .gap_2()
-                                .items_center()
-                                .child(
-                                    div()
-                                        .flex_1()
-                                        .child(
-                                            // Password hint display
-                                            div()
-                                                .px_3()
-                                                .py_2()
-                                                .bg(rgb(0xfef3c7))
-                                                .border_1()
-                                                .border_color(rgb(0xfbbf24))
-                                                .rounded_md()
-                                                .text_sm()
-                                                .text_color(rgb(0x92400e))
-                                                .child("••••••• (test123)")
-                                        )
-                                )
-                                .child(
-                                    Button::new("submit_password")
-                                        .success()
-                                        .label(t!("actions.connect").to_string())
-                                        .on_click(move |_, _, _| {
-                                            let app_state = app_state.clone();
-                                            tracing::info!("Submit password for connection: {}", conn_id);
-
-                                            tokio::spawn(async move {
-                                                // TODO: Implement proper password input
-                                                // For now, use a hardcoded test password
-                                                let password = "test123".to_string();
-                                                tracing::info!("Connecting with TEST password (this is temporary!)");
-
-                                                // Hide password input
-                                                app_state.hide_password_input().await;
-
-                                                // Connect
-                                                match app_state.connect_session(conn_id, Some(password)).await {
-                                                    Ok(session_id) => {
-                                                        tracing::info!("Successfully connected, session: {}", session_id);
-                                                    }
-                                                    Err(e) => {
-                                                        tracing::error!("Connection failed: {}", e);
-                                                    }
-                                                }
-                                            });
-                                        })
-                                )
-                                .child(
-                                    Button::new("cancel_password")
-                                        .label(t!("actions.cancel").to_string())
-                                        .on_click(move |_, _, _| {
-                                            let app_state = app_state_for_cancel.clone();
-                                            tracing::info!("Cancel password input");
-
-                                            tokio::spawn(async move {
-                                                app_state.hide_password_input().await;
-                                            });
-                                        })
-                                )
-                        )
-                )
-            })
-    }
-
-    fn render_forwarding_info(&self, config: &crate::models::forwarding::ForwardingConfig) -> String {
-        use crate::models::forwarding::ForwardingConfig;
-
-        match config {
-            ForwardingConfig::Local(local) => {
-                format!("{} {}→{}:{}",
-                    t!("forwarding.local"),
-                    local.local_port,
-                    local.remote_host,
-                    local.remote_port
-                )
-            }
-            ForwardingConfig::Remote(remote) => {
-                format!("{} {}→localhost:{}",
-                    t!("forwarding.remote"),
-                    remote.remote_port,
-                    remote.local_port
-                )
-            }
-            ForwardingConfig::Dynamic(dynamic) => {
-                format!("{} (SOCKS5:{})",
-                    t!("forwarding.dynamic"),
-                    dynamic.local_port
-                )
-            }
-        }
-    }
-
-    fn render_session_card(&self, session: &crate::models::session::ActiveSession) -> Div {
-        use button::{Button, ButtonVariants};
-        use label::Label;
-
-        let session_id = session.id;
-        let app_state = self.app_state.clone();
-
-        // Format duration
-        let duration = chrono::Utc::now().signed_duration_since(session.started_at);
-        let duration_str = Self::format_duration(duration);
-
-        v_flex()
-            .p_4()
-            .mb_3()
-            .bg(rgb(0xffffff))
-            .border_1()
-            .border_color(rgb(0xe5e7eb))
-            .rounded_lg()
-            .shadow_sm()
-            .child(
-                // Header
-                h_flex()
-                    .justify_between()
-                    .items_center()
-                    .mb_2()
-                    .child(
-                        Label::new(session.connection_name.clone())
-                            .text_size(rems(1.0))
-                            .text_color(rgb(0x111827))
-                    )
-                    .child(
-                        Button::new("disconnect_btn")
-                            .danger()
-                            .label(t!("actions.disconnect").to_string())
-                            .on_click(move |_, _, _| {
-                                let app_state = app_state.clone();
-                                tracing::info!("Disconnect session: {}", session_id);
-
-                                tokio::spawn(async move {
-                                    if let Err(e) = app_state.disconnect_session(session_id).await {
-                                        tracing::error!("Failed to disconnect: {}", e);
-                                    } else {
-                                        tracing::info!("Session disconnected successfully");
-                                    }
-                                });
-                            })
-                    )
-            )
-            .child(
-                // Details
-                v_flex()
-                    .gap_1()
-                    .child(
-                        div()
-                            .text_sm()
-                            .text_color(rgb(0x6b7280))
-                            .child(t!("session.duration", "duration" => duration_str.as_str()).to_string())
-                    )
-                    .child(
-                        div()
-                            .text_sm()
-                            .text_color(rgb(0x6b7280))
-                            .child(t!("session.traffic_updown",
-                                sent = Self::format_bytes(session.bytes_sent),
-                                received = Self::format_bytes(session.bytes_received)
-                            ).to_string())
-                    )
-            )
-    }
-
     /// Render active sessions panel (collapsible)
     fn render_sessions_panel(&self, cx: &mut Context<Self>) -> Div {
         use label::Label;
-        use button::{Button, ButtonVariants};
+        use button::Button;
 
         // Get theme colors
         let theme = cx.theme();
@@ -1920,7 +1377,7 @@ impl SshTunnelApp {
     /// Render left panel with connection list (sidebar)
     fn render_left_panel(&self, cx: &mut Context<Self>) -> Div {
         use label::Label;
-        use button::{Button, ButtonVariants};
+        use button::Button;
 
         // Get theme colors
         let theme = cx.theme();
@@ -1930,7 +1387,6 @@ impl SshTunnelApp {
         let text_color = theme.foreground;
         let muted_color = theme.muted_foreground;
         let card_bg = theme.background;
-        let primary_color = theme.primary;
 
         // Semantic colors for connection states
         let connected_bg = if is_dark { gpui::hsla(142.0 / 360.0, 0.40, 0.15, 1.0) } else { gpui::hsla(145.0 / 360.0, 0.80, 0.96, 1.0) };
@@ -2314,7 +1770,7 @@ impl SshTunnelApp {
     /// Render right panel with config details (main content area)
     fn render_right_panel_new(&self, cx: &mut Context<Self>) -> Div {
         use label::Label;
-        use button::{Button, ButtonVariants};
+        use button::Button;
 
         // Get theme colors
         let theme = cx.theme();
@@ -2324,7 +1780,6 @@ impl SshTunnelApp {
         let border_color = theme.border;
         let text_color = theme.foreground;
         let muted_color = theme.muted_foreground;
-        let muted_bg = theme.muted;
 
         // Get UI state
         let (form_data, editing_id, password_input_for, is_connecting, show_templates) =
@@ -2659,69 +2114,6 @@ impl SshTunnelApp {
             )
     }
 
-    fn render_right_panel(&self) -> Div {
-        use label::Label;
-
-        // Read sessions from app state
-        let sessions = if let Ok(sess) = self.app_state.sessions.try_read() {
-            sess.clone()
-        } else {
-            vec![]
-        };
-
-        v_flex()
-            .flex_1()
-            .p_4()
-            .bg(rgb(0xffffff))
-            .rounded_lg()
-            .shadow_sm()
-            .child(
-                v_flex()
-                    .gap_3()
-                    .flex_1()
-                    .child(
-                        Label::new(t!("app.active_sessions").to_string())
-                            .text_size(rems(1.2))
-                            .text_color(rgb(0x374151))
-                    )
-                    .child({
-                        // Session list
-                        if sessions.is_empty() {
-                            v_flex()
-                                .gap_2()
-                                .flex_1()
-                                .child(
-                                    v_flex()
-                                        .p_6()
-                                        .items_center()
-                                        .justify_center()
-                                        .text_center()
-                                        .child(
-                                            div()
-                                                .text_color(rgb(0x6b7280))
-                                                .child(t!("app.no_active_sessions").to_string())
-                                        )
-                                        .child(
-                                            div()
-                                                .mt_2()
-                                                .text_sm()
-                                                .text_color(rgb(0x9ca3af))
-                                                .child(t!("app.connect_to_create").to_string())
-                                        )
-                                )
-                        } else {
-                            v_flex()
-                                .gap_2()
-                                .flex_1()
-                                .children(
-                                    sessions.iter().map(|session| {
-                                        self.render_session_card(session)
-                                    })
-                                )
-                        }
-                    })
-            )
-    }
 }
 
 impl Render for SshTunnelApp {
