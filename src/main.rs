@@ -2,7 +2,7 @@
 rust_i18n::i18n!("locales", fallback = "en");
 
 // Re-export from library
-use ssh_tunnel_manager::{models, services, state, utils};
+use ssh_tunnel_manager::{models, services, utils};
 
 mod cli;
 
