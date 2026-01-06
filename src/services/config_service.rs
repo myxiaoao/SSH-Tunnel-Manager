@@ -277,7 +277,7 @@ impl Default for AppSettings {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::models::AuthMethod;
+    use crate::models::{AuthMethod, ForwardingConfig};
     use tempfile::TempDir;
 
     fn create_test_service() -> (ConfigService, TempDir) {
@@ -338,5 +338,155 @@ mod tests {
         assert_eq!(templates.len(), 5);
         assert!(templates.iter().any(|t| t.name.contains("MySQL")));
         assert!(templates.iter().any(|t| t.name.contains("SOCKS")));
+    }
+
+    #[test]
+    fn test_load_connections_empty() {
+        let (service, _temp) = create_test_service();
+        let connections = service.load_connections().unwrap();
+        assert!(connections.is_empty());
+    }
+
+    #[test]
+    fn test_update_existing_connection() {
+        let (service, _temp) = create_test_service();
+
+        let mut connection = SshConnection::new("Test", "example.com", "user");
+        service.save_connection(&connection).unwrap();
+
+        // Update the connection
+        connection.name = "Updated".to_string();
+        connection.port = 2222;
+        service.save_connection(&connection).unwrap();
+
+        let loaded = service.load_connections().unwrap();
+        assert_eq!(loaded.len(), 1);
+        assert_eq!(loaded[0].name, "Updated");
+        assert_eq!(loaded[0].port, 2222);
+    }
+
+    #[test]
+    fn test_multiple_connections() {
+        let (service, _temp) = create_test_service();
+
+        let conn1 = SshConnection::new("Server 1", "server1.com", "user1");
+        let conn2 = SshConnection::new("Server 2", "server2.com", "user2");
+        let conn3 = SshConnection::new("Server 3", "server3.com", "user3");
+
+        service.save_connection(&conn1).unwrap();
+        service.save_connection(&conn2).unwrap();
+        service.save_connection(&conn3).unwrap();
+
+        let loaded = service.load_connections().unwrap();
+        assert_eq!(loaded.len(), 3);
+    }
+
+    #[test]
+    fn test_delete_nonexistent_connection() {
+        let (service, _temp) = create_test_service();
+
+        let deleted = service.delete_connection(uuid::Uuid::new_v4()).unwrap();
+        assert!(!deleted);
+    }
+
+    #[test]
+    fn test_get_connection_by_id() {
+        let (service, _temp) = create_test_service();
+
+        let connection = SshConnection::new("Test", "example.com", "user");
+        let id = connection.id;
+        service.save_connection(&connection).unwrap();
+
+        let found = service.get_connection(id).unwrap();
+        assert!(found.is_some());
+        assert_eq!(found.unwrap().name, "Test");
+    }
+
+    #[test]
+    fn test_get_connection_not_found() {
+        let (service, _temp) = create_test_service();
+
+        let found = service.get_connection(uuid::Uuid::new_v4()).unwrap();
+        assert!(found.is_none());
+    }
+
+    #[test]
+    fn test_save_connection_with_forwarding() {
+        let (service, _temp) = create_test_service();
+
+        let connection = SshConnection::new("Test", "example.com", "user")
+            .with_forwarding(ForwardingConfig::local(3306, "localhost", 3306))
+            .with_forwarding(ForwardingConfig::dynamic(1080));
+
+        service.save_connection(&connection).unwrap();
+        let loaded = service.load_connections().unwrap();
+
+        assert_eq!(loaded[0].forwarding_configs.len(), 2);
+    }
+
+    #[test]
+    fn test_save_connection_with_public_key_auth() {
+        let (service, _temp) = create_test_service();
+
+        let connection = SshConnection::new("Test", "example.com", "user")
+            .with_auth_method(AuthMethod::public_key("/path/to/key", true));
+
+        service.save_connection(&connection).unwrap();
+        let loaded = service.load_connections().unwrap();
+
+        assert!(matches!(loaded[0].auth_method, AuthMethod::PublicKey { .. }));
+    }
+
+    #[test]
+    fn test_load_settings_default() {
+        let (service, _temp) = create_test_service();
+        let settings = service.load_settings().unwrap();
+
+        assert_eq!(settings.language, "en");
+        assert_eq!(settings.idle_timeout_seconds, 300);
+        assert_eq!(settings.check_interval_seconds, 60);
+        assert_eq!(settings.default_bind_address, "127.0.0.1");
+    }
+
+    #[test]
+    fn test_app_settings_default() {
+        let settings = AppSettings::default();
+
+        assert_eq!(settings.language, "en");
+        assert_eq!(settings.idle_timeout_seconds, 300);
+        assert_eq!(settings.check_interval_seconds, 60);
+        assert_eq!(settings.default_bind_address, "127.0.0.1");
+    }
+
+    #[test]
+    fn test_save_and_load_templates() {
+        let (service, _temp) = create_test_service();
+
+        let template = ConnectionTemplate::new("Custom Template", "Custom description");
+        service.save_templates(&[template]).unwrap();
+
+        let loaded = service.load_templates().unwrap();
+        assert_eq!(loaded.len(), 1);
+        assert_eq!(loaded[0].name, "Custom Template");
+    }
+
+    #[test]
+    fn test_config_dir() {
+        let (service, temp) = create_test_service();
+        assert_eq!(service.config_dir(), temp.path());
+    }
+
+    #[test]
+    fn test_save_all_connections() {
+        let (service, _temp) = create_test_service();
+
+        let connections = vec![
+            SshConnection::new("Server 1", "s1.com", "user"),
+            SshConnection::new("Server 2", "s2.com", "user"),
+        ];
+
+        service.save_connections(&connections).unwrap();
+        let loaded = service.load_connections().unwrap();
+        assert_eq!(loaded.len(), 2);
     }
 }

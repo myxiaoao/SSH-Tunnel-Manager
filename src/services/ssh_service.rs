@@ -618,7 +618,7 @@ mod tests {
 
     #[test]
     fn test_ssh_client_handler() {
-        let handler = SshClientHandler::new();
+        let _handler = SshClientHandler::new();
         // Just ensure it can be created
         assert!(true);
     }

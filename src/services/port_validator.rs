@@ -245,11 +245,13 @@ mod tests {
     fn test_port_validation() {
         // Invalid ports
         assert!(!PortValidator::is_valid_port(0));
-        assert!(!PortValidator::is_valid_port(65536));
+        // Note: 65536 is out of u16 range, so compiler prevents it
 
         // Valid ports
+        assert!(PortValidator::is_valid_port(1));
         assert!(PortValidator::is_valid_port(8080));
         assert!(PortValidator::is_valid_port(3000));
+        assert!(PortValidator::is_valid_port(65535)); // Max valid port
     }
 
     #[test]

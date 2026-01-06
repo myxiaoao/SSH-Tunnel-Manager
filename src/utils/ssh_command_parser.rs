@@ -448,6 +448,8 @@ mod tests {
             idle_timeout_seconds: Some(300),
             host_key_fingerprint: None,
             verify_host_key: false,
+            compression: true,
+            quiet_mode: false,
             created_at: chrono::Utc::now(),
             updated_at: chrono::Utc::now(),
         };
@@ -456,5 +458,184 @@ mod tests {
         assert!(cmd.contains("-p 2222"));
         assert!(cmd.contains("-D 127.0.0.1:1080"));
         assert!(cmd.contains("user@example.com"));
+    }
+
+    // Edge case tests
+    #[test]
+    fn test_parse_command_not_ssh() {
+        let result = SshCommandParser::parse_command("scp file user@host:");
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_parse_command_empty() {
+        let result = SshCommandParser::parse_command("");
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_parse_command_missing_host() {
+        let result = SshCommandParser::parse_command("ssh -D 1080");
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_parse_with_custom_port() {
+        let conn = SshCommandParser::parse_command("ssh -p 2222 user@host.com").unwrap();
+        assert_eq!(conn.port, 2222);
+        assert_eq!(conn.host, "host.com");
+    }
+
+    #[test]
+    fn test_parse_with_identity_file() {
+        let conn = SshCommandParser::parse_command("ssh -i /path/to/key user@host.com").unwrap();
+        if let AuthMethod::PublicKey { private_key_path, .. } = &conn.auth_method {
+            assert_eq!(private_key_path.to_str().unwrap(), "/path/to/key");
+        } else {
+            panic!("Expected PublicKey auth method");
+        }
+    }
+
+    #[test]
+    fn test_parse_multiple_forwards() {
+        let conn = SshCommandParser::parse_command(
+            "ssh -L 3306:localhost:3306 -L 5432:localhost:5432 -D 1080 user@host.com"
+        ).unwrap();
+
+        assert_eq!(conn.forwarding_configs.len(), 3);
+    }
+
+    #[test]
+    fn test_parse_local_forward_with_bind_address() {
+        let conn = SshCommandParser::parse_command(
+            "ssh -L 0.0.0.0:8080:localhost:80 user@host.com"
+        ).unwrap();
+
+        if let ForwardingConfig::Local(local) = &conn.forwarding_configs[0] {
+            assert_eq!(local.bind_address, "0.0.0.0");
+            assert_eq!(local.local_port, 8080);
+        } else {
+            panic!("Expected local forwarding");
+        }
+    }
+
+    #[test]
+    fn test_parse_dynamic_forward_with_bind_address() {
+        let conn = SshCommandParser::parse_command(
+            "ssh -D 0.0.0.0:1080 user@host.com"
+        ).unwrap();
+
+        if let ForwardingConfig::Dynamic(dynamic) = &conn.forwarding_configs[0] {
+            assert_eq!(dynamic.bind_address, "0.0.0.0");
+            assert_eq!(dynamic.local_port, 1080);
+        } else {
+            panic!("Expected dynamic forwarding");
+        }
+    }
+
+    #[test]
+    fn test_parse_missing_l_argument() {
+        let result = SshCommandParser::parse_command("ssh -L user@host.com");
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_parse_missing_r_argument() {
+        let result = SshCommandParser::parse_command("ssh -R user@host.com");
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_parse_missing_d_argument() {
+        let result = SshCommandParser::parse_command("ssh -D user@host.com");
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_parse_invalid_local_forward_format() {
+        let result = SshCommandParser::parse_command("ssh -L invalid user@host.com");
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_parse_host_only() {
+        let conn = SshCommandParser::parse_command("ssh host.example.com").unwrap();
+        assert_eq!(conn.host, "host.example.com");
+        // Username should default to environment or "root"
+        assert!(!conn.username.is_empty());
+    }
+
+    #[test]
+    fn test_parse_with_verbose_flags() {
+        let conn = SshCommandParser::parse_command("ssh -v -vv -vvv user@host.com").unwrap();
+        assert_eq!(conn.host, "host.com");
+    }
+
+    #[test]
+    fn test_to_command_with_local_forwarding() {
+        let conn = SshConnection::new("Test", "example.com", "user")
+            .with_forwarding(ForwardingConfig::local(8080, "localhost", 80));
+
+        let cmd = SshCommandParser::to_command(&conn);
+        assert!(cmd.contains("-L 127.0.0.1:8080:localhost:80"));
+    }
+
+    #[test]
+    fn test_to_command_with_remote_forwarding() {
+        let conn = SshConnection::new("Test", "example.com", "user")
+            .with_forwarding(ForwardingConfig::remote(8080, "localhost", 3000));
+
+        let cmd = SshCommandParser::to_command(&conn);
+        assert!(cmd.contains("-R 8080:localhost:3000"));
+    }
+
+    #[test]
+    fn test_to_command_default_port() {
+        let conn = SshConnection::new("Test", "example.com", "user");
+        let cmd = SshCommandParser::to_command(&conn);
+        assert!(!cmd.contains("-p "));
+        assert!(cmd.contains("user@example.com"));
+    }
+
+    #[test]
+    fn test_to_command_with_identity_file() {
+        let conn = SshConnection::new("Test", "example.com", "user")
+            .with_auth_method(AuthMethod::public_key("/home/user/.ssh/id_rsa", false));
+
+        let cmd = SshCommandParser::to_command(&conn);
+        assert!(cmd.contains("-i /home/user/.ssh/id_rsa"));
+    }
+
+    #[test]
+    fn test_parse_connection_name_generation() {
+        let conn = SshCommandParser::parse_command("ssh -D 1080 user@host.com").unwrap();
+        assert!(conn.name.contains("SOCKS Proxy"));
+
+        let conn = SshCommandParser::parse_command("ssh -L 8080:localhost:80 user@host.com").unwrap();
+        assert!(conn.name.contains("Local Forward"));
+
+        let conn = SshCommandParser::parse_command("ssh -R 8080:localhost:80 user@host.com").unwrap();
+        assert!(conn.name.contains("Remote Forward"));
+
+        let conn = SshCommandParser::parse_command("ssh user@host.com").unwrap();
+        assert!(conn.name.contains("user@host.com"));
+    }
+
+    #[test]
+    fn test_parse_invalid_port() {
+        let result = SshCommandParser::parse_command("ssh -p abc user@host.com");
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_parse_missing_p_argument() {
+        let result = SshCommandParser::parse_command("ssh -p");
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_parse_missing_i_argument() {
+        let result = SshCommandParser::parse_command("ssh -i");
+        assert!(result.is_err());
     }
 }
