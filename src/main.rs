@@ -1,10 +1,9 @@
 // Load i18n translations
 rust_i18n::i18n!("locales", fallback = "en");
 
-mod models;
-mod services;
-mod state;
-mod utils;
+// Re-export from library
+use ssh_tunnel_manager::{models, services, state, utils};
+
 mod cli;
 
 // GUI modules (requires Rust 1.87+ and Xcode Command Line Tools)

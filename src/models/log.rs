@@ -194,3 +194,199 @@ impl LogLevel {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_connection_log_new() {
+        let conn_id = Uuid::new_v4();
+        let log = ConnectionLog::new(conn_id, "Test Connection", LogLevel::Info, ConnectionEvent::Connected);
+
+        assert_eq!(log.connection_id, conn_id);
+        assert_eq!(log.connection_name, "Test Connection");
+        assert_eq!(log.level, LogLevel::Info);
+        assert!(matches!(log.event, ConnectionEvent::Connected));
+        assert!(log.session_id.is_none());
+        assert!(log.message.is_none());
+        assert!(log.metadata.is_none());
+    }
+
+    #[test]
+    fn test_connection_log_with_session() {
+        let conn_id = Uuid::new_v4();
+        let session_id = Uuid::new_v4();
+        let log = ConnectionLog::new(conn_id, "Test", LogLevel::Info, ConnectionEvent::Connected)
+            .with_session(session_id);
+
+        assert_eq!(log.session_id, Some(session_id));
+    }
+
+    #[test]
+    fn test_connection_log_with_message() {
+        let conn_id = Uuid::new_v4();
+        let log = ConnectionLog::new(conn_id, "Test", LogLevel::Warning, ConnectionEvent::ConnectionFailed)
+            .with_message("Connection timeout");
+
+        assert_eq!(log.message, Some("Connection timeout".to_string()));
+    }
+
+    #[test]
+    fn test_connection_log_with_metadata() {
+        let conn_id = Uuid::new_v4();
+        let metadata = serde_json::json!({"port": 22, "host": "example.com"});
+        let log = ConnectionLog::new(conn_id, "Test", LogLevel::Info, ConnectionEvent::Connected)
+            .with_metadata(metadata.clone());
+
+        assert_eq!(log.metadata, Some(metadata));
+    }
+
+    #[test]
+    fn test_log_level_as_str() {
+        assert_eq!(LogLevel::Info.as_str(), "info");
+        assert_eq!(LogLevel::Warning.as_str(), "warning");
+        assert_eq!(LogLevel::Error.as_str(), "error");
+    }
+
+    #[test]
+    fn test_connection_log_format_connected() {
+        let conn_id = Uuid::new_v4();
+        let log = ConnectionLog::new(conn_id, "My Server", LogLevel::Info, ConnectionEvent::Connected);
+
+        let formatted = log.format();
+        assert!(formatted.contains("INFO"));
+        assert!(formatted.contains("My Server"));
+        assert!(formatted.contains("Connected"));
+    }
+
+    #[test]
+    fn test_connection_log_format_with_message() {
+        let conn_id = Uuid::new_v4();
+        let log = ConnectionLog::new(conn_id, "Test", LogLevel::Error, ConnectionEvent::ConnectionFailed)
+            .with_message("Host unreachable");
+
+        let formatted = log.format();
+        assert!(formatted.contains("ERROR"));
+        assert!(formatted.contains("Connection failed"));
+        assert!(formatted.contains("Host unreachable"));
+    }
+
+    #[test]
+    fn test_connection_log_format_tunnel_created() {
+        let conn_id = Uuid::new_v4();
+        let log = ConnectionLog::new(
+            conn_id,
+            "Test",
+            LogLevel::Info,
+            ConnectionEvent::TunnelCreated { tunnel_type: "local".to_string() },
+        );
+
+        let formatted = log.format();
+        assert!(formatted.contains("Tunnel created: local"));
+    }
+
+    #[test]
+    fn test_connection_log_format_forwarding_activity() {
+        let conn_id = Uuid::new_v4();
+        let log = ConnectionLog::new(
+            conn_id,
+            "Test",
+            LogLevel::Info,
+            ConnectionEvent::ForwardingActivity {
+                bytes_sent: 1024 * 1024 * 5,  // 5 MB
+                bytes_received: 1024 * 100,    // 100 KB
+            },
+        );
+
+        let formatted = log.format();
+        assert!(formatted.contains("Traffic:"));
+        assert!(formatted.contains("MB"));
+        assert!(formatted.contains("KB"));
+    }
+
+    #[test]
+    fn test_connection_log_format_with_session() {
+        let conn_id = Uuid::new_v4();
+        let session_id = Uuid::new_v4();
+        let log = ConnectionLog::new(conn_id, "Test", LogLevel::Info, ConnectionEvent::Connected)
+            .with_session(session_id);
+
+        let formatted = log.format();
+        assert!(formatted.contains("session:"));
+        assert!(formatted.contains(&session_id.to_string()));
+    }
+
+    #[test]
+    fn test_all_connection_events() {
+        let conn_id = Uuid::new_v4();
+
+        // Test all event types can be created and formatted
+        let events = vec![
+            ConnectionEvent::ConnectAttempt,
+            ConnectionEvent::Connected,
+            ConnectionEvent::ConnectionFailed,
+            ConnectionEvent::AuthSuccess,
+            ConnectionEvent::AuthFailed,
+            ConnectionEvent::TunnelCreated { tunnel_type: "local".to_string() },
+            ConnectionEvent::TunnelFailed { tunnel_type: "remote".to_string() },
+            ConnectionEvent::Disconnected,
+            ConnectionEvent::IdleTimeout,
+            ConnectionEvent::ErrorDisconnect,
+            ConnectionEvent::CommandExecuted { command: "ls -la".to_string() },
+            ConnectionEvent::ForwardingActivity { bytes_sent: 100, bytes_received: 200 },
+        ];
+
+        for event in events {
+            let log = ConnectionLog::new(conn_id, "Test", LogLevel::Info, event);
+            let formatted = log.format();
+            assert!(!formatted.is_empty());
+        }
+    }
+
+    #[test]
+    fn test_format_bytes() {
+        let conn_id = Uuid::new_v4();
+
+        // Test bytes formatting
+        let log_bytes = ConnectionLog::new(
+            conn_id, "Test", LogLevel::Info,
+            ConnectionEvent::ForwardingActivity { bytes_sent: 500, bytes_received: 0 },
+        );
+        assert!(log_bytes.format().contains("500 B"));
+
+        // Test KB formatting
+        let log_kb = ConnectionLog::new(
+            conn_id, "Test", LogLevel::Info,
+            ConnectionEvent::ForwardingActivity { bytes_sent: 1024 * 5, bytes_received: 0 },
+        );
+        assert!(log_kb.format().contains("KB"));
+
+        // Test MB formatting
+        let log_mb = ConnectionLog::new(
+            conn_id, "Test", LogLevel::Info,
+            ConnectionEvent::ForwardingActivity { bytes_sent: 1024 * 1024 * 5, bytes_received: 0 },
+        );
+        assert!(log_mb.format().contains("MB"));
+
+        // Test GB formatting
+        let log_gb = ConnectionLog::new(
+            conn_id, "Test", LogLevel::Info,
+            ConnectionEvent::ForwardingActivity { bytes_sent: 1024 * 1024 * 1024 * 2, bytes_received: 0 },
+        );
+        assert!(log_gb.format().contains("GB"));
+    }
+
+    #[test]
+    fn test_log_serialization() {
+        let conn_id = Uuid::new_v4();
+        let log = ConnectionLog::new(conn_id, "Test", LogLevel::Info, ConnectionEvent::Connected);
+
+        let json = serde_json::to_string(&log).unwrap();
+        assert!(json.contains("\"connection_name\":\"Test\""));
+
+        let deserialized: ConnectionLog = serde_json::from_str(&json).unwrap();
+        assert_eq!(deserialized.connection_name, "Test");
+        assert_eq!(deserialized.level, LogLevel::Info);
+    }
+}

@@ -165,4 +165,92 @@ mod tests {
         let traffic = session.format_traffic();
         assert!(traffic.contains("MB") || traffic.contains("KB"));
     }
+
+    #[test]
+    fn test_format_traffic_bytes() {
+        let mut session = ActiveSession::new(Uuid::new_v4(), "Test", 300);
+        session.bytes_sent = 100;
+        session.bytes_received = 200;
+
+        assert_eq!(session.format_traffic(), "300 B");
+    }
+
+    #[test]
+    fn test_format_traffic_kilobytes() {
+        let mut session = ActiveSession::new(Uuid::new_v4(), "Test", 300);
+        session.bytes_sent = 1024 * 10; // 10 KB
+        session.bytes_received = 0;
+
+        assert!(session.format_traffic().contains("KB"));
+    }
+
+    #[test]
+    fn test_format_traffic_gigabytes() {
+        let mut session = ActiveSession::new(Uuid::new_v4(), "Test", 300);
+        session.bytes_sent = 1024 * 1024 * 1024 * 2; // 2 GB
+        session.bytes_received = 0;
+
+        assert!(session.format_traffic().contains("GB"));
+    }
+
+    #[test]
+    fn test_session_touch() {
+        let mut session = ActiveSession::new(Uuid::new_v4(), "Test", 300);
+        let original = session.last_activity;
+
+        std::thread::sleep(std::time::Duration::from_millis(10));
+        session.touch();
+
+        assert!(session.last_activity > original);
+    }
+
+    #[test]
+    fn test_session_status_is_active() {
+        assert!(!SessionStatus::Connecting.is_active());
+        assert!(SessionStatus::Connected.is_active());
+        assert!(SessionStatus::Forwarding.is_active());
+        assert!(SessionStatus::Idle.is_active());
+        assert!(!SessionStatus::Disconnecting.is_active());
+        assert!(!SessionStatus::Error.is_active());
+    }
+
+    #[test]
+    fn test_session_status_is_error() {
+        assert!(!SessionStatus::Connecting.is_error());
+        assert!(!SessionStatus::Connected.is_error());
+        assert!(SessionStatus::Error.is_error());
+    }
+
+    #[test]
+    fn test_session_status_display_str() {
+        assert_eq!(SessionStatus::Connecting.display_str(), "Connecting...");
+        assert_eq!(SessionStatus::Connected.display_str(), "Connected");
+        assert_eq!(SessionStatus::Forwarding.display_str(), "Forwarding");
+        assert_eq!(SessionStatus::Idle.display_str(), "Idle");
+        assert_eq!(SessionStatus::Disconnecting.display_str(), "Disconnecting");
+        assert_eq!(SessionStatus::Error.display_str(), "Error");
+    }
+
+    #[test]
+    fn test_session_serialization() {
+        let session = ActiveSession::new(Uuid::new_v4(), "Test", 300);
+
+        let json = serde_json::to_string(&session).unwrap();
+        assert!(json.contains("\"connection_name\":\"Test\""));
+
+        let deserialized: ActiveSession = serde_json::from_str(&json).unwrap();
+        assert_eq!(deserialized.connection_name, "Test");
+        assert_eq!(deserialized.idle_timeout_seconds, 300);
+    }
+
+    #[test]
+    fn test_session_is_idle() {
+        let mut session = ActiveSession::new(Uuid::new_v4(), "Test", 0);
+        // With 0 timeout, should immediately be idle
+        assert!(session.is_idle());
+
+        // With high timeout, should not be idle
+        session.idle_timeout_seconds = 86400; // 1 day
+        assert!(!session.is_idle());
+    }
 }

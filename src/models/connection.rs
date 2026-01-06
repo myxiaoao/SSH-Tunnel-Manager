@@ -182,6 +182,7 @@ impl JumpHost {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::path::PathBuf;
 
     #[test]
     fn test_connection_builder() {
@@ -200,5 +201,97 @@ mod tests {
     fn test_display_name() {
         let conn = SshConnection::new("Test", "example.com", "user");
         assert_eq!(conn.display_name(), "user@example.com:22");
+    }
+
+    #[test]
+    fn test_connection_default_values() {
+        let conn = SshConnection::new("Test", "host.com", "root");
+
+        assert_eq!(conn.port, 22);
+        assert!(conn.forwarding_configs.is_empty());
+        assert!(conn.jump_hosts.is_empty());
+        assert_eq!(conn.idle_timeout_seconds, Some(300));
+        assert!(conn.host_key_fingerprint.is_none());
+        assert!(!conn.verify_host_key);
+        assert!(conn.compression);
+        assert!(!conn.quiet_mode);
+    }
+
+    #[test]
+    fn test_connection_with_auth_method() {
+        let conn = SshConnection::new("Test", "host.com", "user")
+            .with_auth_method(AuthMethod::PublicKey {
+                private_key_path: PathBuf::from("/home/user/.ssh/id_rsa"),
+                passphrase_required: true,
+            });
+
+        assert!(matches!(conn.auth_method, AuthMethod::PublicKey { .. }));
+    }
+
+    #[test]
+    fn test_connection_with_jump_host() {
+        let jump = JumpHost::new("jump.example.com", "jumpuser").with_port(2222);
+        let conn = SshConnection::new("Test", "target.com", "user")
+            .with_jump_host(jump);
+
+        assert_eq!(conn.jump_hosts.len(), 1);
+        assert_eq!(conn.jump_hosts[0].host, "jump.example.com");
+        assert_eq!(conn.jump_hosts[0].username, "jumpuser");
+        assert_eq!(conn.jump_hosts[0].port, 2222);
+    }
+
+    #[test]
+    fn test_connection_with_idle_timeout() {
+        let conn = SshConnection::new("Test", "host.com", "user")
+            .with_idle_timeout(600);
+
+        assert_eq!(conn.idle_timeout_seconds, Some(600));
+    }
+
+    #[test]
+    fn test_connection_touch() {
+        let mut conn = SshConnection::new("Test", "host.com", "user");
+        let original_updated_at = conn.updated_at;
+
+        std::thread::sleep(std::time::Duration::from_millis(10));
+        conn.touch();
+
+        assert!(conn.updated_at > original_updated_at);
+    }
+
+    #[test]
+    fn test_connection_multiple_forwardings() {
+        let conn = SshConnection::new("Test", "host.com", "user")
+            .with_forwarding(ForwardingConfig::local(13306, "localhost", 3306))
+            .with_forwarding(ForwardingConfig::dynamic(1080))
+            .with_forwarding(ForwardingConfig::remote(8080, "localhost", 3000));
+
+        assert_eq!(conn.forwarding_configs.len(), 3);
+    }
+
+    #[test]
+    fn test_jump_host_builder() {
+        let jump = JumpHost::new("jump.com", "admin")
+            .with_port(2222)
+            .with_auth_method(AuthMethod::Password);
+
+        assert_eq!(jump.host, "jump.com");
+        assert_eq!(jump.username, "admin");
+        assert_eq!(jump.port, 2222);
+        assert!(matches!(jump.auth_method, AuthMethod::Password));
+    }
+
+    #[test]
+    fn test_connection_serialization() {
+        let conn = SshConnection::new("Test", "host.com", "user")
+            .with_port(2222);
+
+        let json = serde_json::to_string(&conn).unwrap();
+        assert!(json.contains("\"host\":\"host.com\""));
+        assert!(json.contains("\"port\":2222"));
+
+        let deserialized: SshConnection = serde_json::from_str(&json).unwrap();
+        assert_eq!(deserialized.host, "host.com");
+        assert_eq!(deserialized.port, 2222);
     }
 }

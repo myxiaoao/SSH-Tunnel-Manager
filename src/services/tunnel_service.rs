@@ -541,8 +541,8 @@ impl TunnelService {
 mod tests {
     use super::*;
 
-    #[test]
-    fn test_tunnel_handle() {
+    #[tokio::test]
+    async fn test_tunnel_handle() {
         let task = tokio::spawn(async {
             tokio::time::sleep(std::time::Duration::from_millis(10)).await;
         });
@@ -552,7 +552,7 @@ mod tests {
             ForwardingConfig::Dynamic(DynamicForwarding {
                 local_port: 1080,
                 bind_address: "127.0.0.1".to_string(),
-                socks_version: crate::models::SocksVersion::Socks5,
+                socks_version: crate::models::forwarding::SocksVersion::Socks5,
             }),
             traffic_counter,
             task,

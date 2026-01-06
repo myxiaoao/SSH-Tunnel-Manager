@@ -465,4 +465,146 @@ mod tests {
         let keys = key_service.list_keys().await.unwrap();
         assert_eq!(keys.len(), 0);
     }
+
+    #[test]
+    fn test_key_type_as_str() {
+        assert_eq!(KeyType::Rsa2048.as_str(), "RSA 2048");
+        assert_eq!(KeyType::Rsa4096.as_str(), "RSA 4096");
+        assert_eq!(KeyType::Ed25519.as_str(), "Ed25519");
+    }
+
+    #[test]
+    fn test_key_type_recommended() {
+        assert_eq!(KeyType::recommended(), KeyType::Ed25519);
+    }
+
+    #[tokio::test]
+    async fn test_list_keys_empty() {
+        let temp_dir = tempdir().unwrap();
+        let key_service = KeyService::new(temp_dir.path().to_path_buf()).unwrap();
+
+        let keys = key_service.list_keys().await.unwrap();
+        assert!(keys.is_empty());
+    }
+
+    #[tokio::test]
+    async fn test_delete_nonexistent_key() {
+        let temp_dir = tempdir().unwrap();
+        let key_service = KeyService::new(temp_dir.path().to_path_buf()).unwrap();
+
+        let result = key_service.delete_key("nonexistent").await;
+        assert!(result.is_err());
+    }
+
+    #[tokio::test]
+    async fn test_generate_duplicate_key() {
+        let temp_dir = tempdir().unwrap();
+        let key_service = KeyService::new(temp_dir.path().to_path_buf()).unwrap();
+
+        key_service
+            .generate_key("test_key", KeyType::Ed25519, None)
+            .await
+            .unwrap();
+
+        let result = key_service
+            .generate_key("test_key", KeyType::Ed25519, None)
+            .await;
+        assert!(result.is_err());
+    }
+
+    #[tokio::test]
+    async fn test_get_key_info() {
+        let temp_dir = tempdir().unwrap();
+        let key_service = KeyService::new(temp_dir.path().to_path_buf()).unwrap();
+
+        let generated = key_service
+            .generate_key("test_key", KeyType::Ed25519, None)
+            .await
+            .unwrap();
+
+        let info = key_service.get_key_info(&generated.path).await.unwrap();
+        assert_eq!(info.name, "test_key");
+        assert!(!info.fingerprint.is_empty());
+    }
+
+    #[tokio::test]
+    async fn test_get_key_info_not_found() {
+        let temp_dir = tempdir().unwrap();
+        let key_service = KeyService::new(temp_dir.path().to_path_buf()).unwrap();
+
+        let result = key_service
+            .get_key_info(&temp_dir.path().join("nonexistent"))
+            .await;
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_validate_key_permissions_not_found() {
+        let temp_dir = tempdir().unwrap();
+        let key_service = KeyService::new(temp_dir.path().to_path_buf()).unwrap();
+
+        let result = key_service.validate_key_permissions(&temp_dir.path().join("nonexistent"));
+        // On non-Unix, this may succeed or fail differently
+        #[cfg(unix)]
+        assert!(result.is_err());
+    }
+
+    #[cfg(unix)]
+    #[tokio::test]
+    async fn test_key_permissions_are_correct() {
+        use std::os::unix::fs::PermissionsExt;
+
+        let temp_dir = tempdir().unwrap();
+        let key_service = KeyService::new(temp_dir.path().to_path_buf()).unwrap();
+
+        let key_info = key_service
+            .generate_key("test_key", KeyType::Ed25519, None)
+            .await
+            .unwrap();
+
+        // Check private key permissions (should be 0600)
+        let metadata = std::fs::metadata(&key_info.path).unwrap();
+        let mode = metadata.permissions().mode() & 0o777;
+        assert_eq!(mode, 0o600);
+
+        // Check public key permissions (should be 0644)
+        let pub_metadata = std::fs::metadata(&key_info.public_key_path).unwrap();
+        let pub_mode = pub_metadata.permissions().mode() & 0o777;
+        assert_eq!(pub_mode, 0o644);
+    }
+
+    #[test]
+    fn test_default_ssh_dir() {
+        let result = KeyService::default_ssh_dir();
+        // Should succeed on most systems
+        if let Ok(path) = result {
+            assert!(path.to_string_lossy().contains(".ssh"));
+        }
+    }
+
+    #[tokio::test]
+    async fn test_key_fingerprint_format() {
+        let temp_dir = tempdir().unwrap();
+        let key_service = KeyService::new(temp_dir.path().to_path_buf()).unwrap();
+
+        let key_info = key_service
+            .generate_key("test_key", KeyType::Ed25519, None)
+            .await
+            .unwrap();
+
+        assert!(key_info.fingerprint.starts_with("SHA256:"));
+    }
+
+    #[tokio::test]
+    async fn test_key_type_in_info() {
+        let temp_dir = tempdir().unwrap();
+        let key_service = KeyService::new(temp_dir.path().to_path_buf()).unwrap();
+
+        let key_info = key_service
+            .generate_key("test_key", KeyType::Ed25519, None)
+            .await
+            .unwrap();
+
+        assert!(key_info.key_type.contains("ed25519") || key_info.key_type.contains("Ed25519"));
+    }
 }

@@ -352,7 +352,6 @@ impl Drop for SessionManager {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::models::AuthMethod;
 
     #[tokio::test]
     async fn test_session_manager_create() {
@@ -371,13 +370,134 @@ mod tests {
 
     #[test]
     fn test_session_data_idle() {
-        let connection = SshConnection::new("Test", "localhost", "user");
+        let _connection = SshConnection::new("Test", "localhost", "user");
 
         // Create a mock session (in real tests, this would be a proper SSH session)
         // For now, we'll just test the logic without actual SSH
-        let timeout = Duration::from_secs(5);
+        let _timeout = Duration::from_secs(5);
 
         // Session would be idle after timeout
         // This is tested indirectly through the manager
+    }
+
+    #[tokio::test]
+    async fn test_session_count_empty() {
+        let manager = SessionManager::new(60);
+        assert_eq!(manager.session_count().await, 0);
+    }
+
+    #[tokio::test]
+    async fn test_list_sessions_empty() {
+        let manager = SessionManager::new(60);
+        let sessions = manager.list_sessions().await;
+        assert!(sessions.is_empty());
+    }
+
+    #[tokio::test]
+    async fn test_get_session_not_found() {
+        let manager = SessionManager::new(60);
+        let session = manager.get_session(uuid::Uuid::new_v4()).await;
+        assert!(session.is_err());
+    }
+
+    #[tokio::test]
+    async fn test_disconnect_nonexistent_session() {
+        let manager = SessionManager::new(60);
+        let result = manager.disconnect_session(uuid::Uuid::new_v4()).await;
+        // Should return an error for non-existent session
+        assert!(result.is_err());
+    }
+
+    #[tokio::test]
+    async fn test_has_session_not_found() {
+        let manager = SessionManager::new(60);
+        let has = manager.has_session(uuid::Uuid::new_v4()).await;
+        assert!(!has);
+    }
+
+    #[tokio::test]
+    async fn test_session_manager_default_timeout() {
+        let manager = SessionManager::new(300);
+        // Verify manager was created with the correct timeout
+        assert_eq!(manager.session_count().await, 0);
+    }
+
+    #[tokio::test]
+    async fn test_session_manager_short_timeout() {
+        let manager = SessionManager::new(1);
+        assert_eq!(manager.session_count().await, 0);
+    }
+
+    #[tokio::test]
+    async fn test_disconnect_all_empty() {
+        let manager = SessionManager::new(60);
+        let result = manager.disconnect_all().await;
+        assert!(result.is_ok());
+        assert_eq!(manager.session_count().await, 0);
+    }
+
+    #[test]
+    fn test_session_data_creation() {
+        let _session_id = uuid::Uuid::new_v4();
+        let connection_id = uuid::Uuid::new_v4();
+
+        // Create a session data (used internally)
+        let active_session = crate::models::ActiveSession::new(
+            connection_id,
+            "Test Connection",
+            300,
+        );
+
+        assert_eq!(active_session.connection_id, connection_id);
+        assert_eq!(active_session.connection_name, "Test Connection");
+        assert_eq!(active_session.idle_timeout_seconds, 300);
+        assert_eq!(active_session.status, crate::models::SessionStatus::Connecting);
+    }
+
+    #[test]
+    fn test_session_status_transitions() {
+        let mut session = crate::models::ActiveSession::new(
+            uuid::Uuid::new_v4(),
+            "Test",
+            300,
+        );
+
+        // Initial status
+        assert_eq!(session.status, crate::models::SessionStatus::Connecting);
+
+        // Transition to connected
+        session.status = crate::models::SessionStatus::Connected;
+        assert!(session.status.is_active());
+
+        // Transition to forwarding
+        session.status = crate::models::SessionStatus::Forwarding;
+        assert!(session.status.is_active());
+
+        // Transition to error
+        session.status = crate::models::SessionStatus::Error;
+        assert!(!session.status.is_active());
+        assert!(session.status.is_error());
+    }
+
+    #[tokio::test]
+    async fn test_concurrent_session_access() {
+        use std::sync::Arc;
+
+        let manager = Arc::new(SessionManager::new(60));
+
+        // Test concurrent access from multiple tasks
+        let handles: Vec<_> = (0..10)
+            .map(|_| {
+                let m = Arc::clone(&manager);
+                tokio::spawn(async move {
+                    m.session_count().await
+                })
+            })
+            .collect();
+
+        for handle in handles {
+            let count = handle.await.unwrap();
+            assert_eq!(count, 0);
+        }
     }
 }

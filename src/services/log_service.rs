@@ -193,3 +193,186 @@ impl LogService {
             .collect()
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use tempfile::tempdir;
+
+    #[tokio::test]
+    async fn test_log_service_new() {
+        let service = LogService::new(100);
+        let logs = service.get_logs().await;
+        assert!(logs.is_empty());
+    }
+
+    #[tokio::test]
+    async fn test_log_service_log_event() {
+        let service = LogService::new(100);
+        let conn_id = Uuid::new_v4();
+
+        service
+            .log(conn_id, "Test Connection", LogLevel::Info, ConnectionEvent::Connected, None)
+            .await
+            .unwrap();
+
+        let logs = service.get_logs().await;
+        assert_eq!(logs.len(), 1);
+        assert_eq!(logs[0].connection_name, "Test Connection");
+    }
+
+    #[tokio::test]
+    async fn test_log_service_log_with_message() {
+        let service = LogService::new(100);
+        let conn_id = Uuid::new_v4();
+
+        service
+            .log(
+                conn_id,
+                "Test",
+                LogLevel::Error,
+                ConnectionEvent::ConnectionFailed,
+                Some("Connection refused".to_string()),
+            )
+            .await
+            .unwrap();
+
+        let logs = service.get_logs().await;
+        assert_eq!(logs[0].message, Some("Connection refused".to_string()));
+    }
+
+    #[tokio::test]
+    async fn test_log_service_log_with_session() {
+        let service = LogService::new(100);
+        let conn_id = Uuid::new_v4();
+        let session_id = Uuid::new_v4();
+
+        service
+            .log_with_session(
+                session_id,
+                conn_id,
+                "Test",
+                LogLevel::Info,
+                ConnectionEvent::Connected,
+                None,
+            )
+            .await
+            .unwrap();
+
+        let logs = service.get_logs().await;
+        assert_eq!(logs[0].session_id, Some(session_id));
+    }
+
+    #[tokio::test]
+    async fn test_log_service_max_capacity() {
+        let service = LogService::new(3);
+        let conn_id = Uuid::new_v4();
+
+        // Add 5 logs to a service with max 3
+        for i in 0..5 {
+            service
+                .log(conn_id, format!("Log {}", i), LogLevel::Info, ConnectionEvent::Connected, None)
+                .await
+                .unwrap();
+        }
+
+        let logs = service.get_logs().await;
+        assert_eq!(logs.len(), 3);
+        // Should have logs 2, 3, 4 (oldest removed)
+        assert_eq!(logs[0].connection_name, "Log 2");
+        assert_eq!(logs[2].connection_name, "Log 4");
+    }
+
+    #[tokio::test]
+    async fn test_log_service_get_logs_for_connection() {
+        let service = LogService::new(100);
+        let conn_id1 = Uuid::new_v4();
+        let conn_id2 = Uuid::new_v4();
+
+        service.log(conn_id1, "Conn1", LogLevel::Info, ConnectionEvent::Connected, None).await.unwrap();
+        service.log(conn_id2, "Conn2", LogLevel::Info, ConnectionEvent::Connected, None).await.unwrap();
+        service.log(conn_id1, "Conn1", LogLevel::Info, ConnectionEvent::Disconnected, None).await.unwrap();
+
+        let logs = service.get_logs_for_connection(conn_id1).await;
+        assert_eq!(logs.len(), 2);
+        assert!(logs.iter().all(|l| l.connection_id == conn_id1));
+    }
+
+    #[tokio::test]
+    async fn test_log_service_get_logs_for_session() {
+        let service = LogService::new(100);
+        let conn_id = Uuid::new_v4();
+        let session_id1 = Uuid::new_v4();
+        let session_id2 = Uuid::new_v4();
+
+        service.log_with_session(session_id1, conn_id, "Test", LogLevel::Info, ConnectionEvent::Connected, None).await.unwrap();
+        service.log_with_session(session_id2, conn_id, "Test", LogLevel::Info, ConnectionEvent::Connected, None).await.unwrap();
+        service.log_with_session(session_id1, conn_id, "Test", LogLevel::Info, ConnectionEvent::Disconnected, None).await.unwrap();
+
+        let logs = service.get_logs_for_session(session_id1).await;
+        assert_eq!(logs.len(), 2);
+        assert!(logs.iter().all(|l| l.session_id == Some(session_id1)));
+    }
+
+    #[tokio::test]
+    async fn test_log_service_get_logs_by_level() {
+        let service = LogService::new(100);
+        let conn_id = Uuid::new_v4();
+
+        service.log(conn_id, "Test", LogLevel::Info, ConnectionEvent::Connected, None).await.unwrap();
+        service.log(conn_id, "Test", LogLevel::Warning, ConnectionEvent::IdleTimeout, None).await.unwrap();
+        service.log(conn_id, "Test", LogLevel::Error, ConnectionEvent::ConnectionFailed, None).await.unwrap();
+        service.log(conn_id, "Test", LogLevel::Info, ConnectionEvent::Disconnected, None).await.unwrap();
+
+        let info_logs = service.get_logs_by_level(LogLevel::Info).await;
+        assert_eq!(info_logs.len(), 2);
+
+        let error_logs = service.get_logs_by_level(LogLevel::Error).await;
+        assert_eq!(error_logs.len(), 1);
+    }
+
+    #[tokio::test]
+    async fn test_log_service_clear() {
+        let service = LogService::new(100);
+        let conn_id = Uuid::new_v4();
+
+        service.log(conn_id, "Test", LogLevel::Info, ConnectionEvent::Connected, None).await.unwrap();
+        service.log(conn_id, "Test", LogLevel::Info, ConnectionEvent::Disconnected, None).await.unwrap();
+
+        assert_eq!(service.get_logs().await.len(), 2);
+
+        service.clear().await;
+        assert!(service.get_logs().await.is_empty());
+    }
+
+    #[tokio::test]
+    async fn test_log_service_get_recent() {
+        let service = LogService::new(100);
+        let conn_id = Uuid::new_v4();
+
+        for i in 0..10 {
+            service.log(conn_id, format!("Log {}", i), LogLevel::Info, ConnectionEvent::Connected, None).await.unwrap();
+        }
+
+        let recent = service.get_recent(3).await;
+        assert_eq!(recent.len(), 3);
+        assert_eq!(recent[0].connection_name, "Log 7");
+        assert_eq!(recent[2].connection_name, "Log 9");
+    }
+
+    #[tokio::test]
+    async fn test_log_service_with_file() {
+        let temp = tempdir().unwrap();
+        let log_path = temp.path().join("test.log");
+
+        let service = LogService::new(100).with_file(log_path.clone());
+        let conn_id = Uuid::new_v4();
+
+        service.log(conn_id, "Test", LogLevel::Info, ConnectionEvent::Connected, None).await.unwrap();
+
+        // Check file was created and has content
+        let content = std::fs::read_to_string(&log_path).unwrap();
+        assert!(content.contains("Test"));
+        assert!(content.contains("Connected"));
+    }
+}

@@ -173,4 +173,100 @@ mod tests {
         assert!(dynamic.description().contains("2025"));
         assert!(dynamic.description().contains("SOCKS"));
     }
+
+    #[test]
+    fn test_remote_forwarding() {
+        let fwd = RemoteForwarding::new(8080, "localhost", 3000);
+        assert_eq!(fwd.remote_port, 8080);
+        assert_eq!(fwd.local_host, "localhost");
+        assert_eq!(fwd.local_port, 3000);
+    }
+
+    #[test]
+    fn test_remote_forwarding_description() {
+        let remote = ForwardingConfig::remote(8080, "localhost", 3000);
+        assert_eq!(remote.description(), "remote:8080 → localhost:3000");
+    }
+
+    #[test]
+    fn test_dynamic_forwarding_with_bind_address() {
+        let fwd = DynamicForwarding::new(1080)
+            .with_bind_address("0.0.0.0");
+        assert_eq!(fwd.bind_address, "0.0.0.0");
+    }
+
+    #[test]
+    fn test_dynamic_forwarding_with_socks_version() {
+        let fwd = DynamicForwarding::new(1080)
+            .with_socks_version(SocksVersion::Socks4);
+        assert_eq!(fwd.socks_version, SocksVersion::Socks4);
+    }
+
+    #[test]
+    fn test_socks_version_default() {
+        let version = SocksVersion::default();
+        assert_eq!(version, SocksVersion::Socks5);
+    }
+
+    #[test]
+    fn test_forwarding_config_local_helper() {
+        let config = ForwardingConfig::local(8080, "db.internal", 5432);
+        if let ForwardingConfig::Local(local) = config {
+            assert_eq!(local.local_port, 8080);
+            assert_eq!(local.remote_host, "db.internal");
+            assert_eq!(local.remote_port, 5432);
+        } else {
+            panic!("Expected Local variant");
+        }
+    }
+
+    #[test]
+    fn test_forwarding_config_remote_helper() {
+        let config = ForwardingConfig::remote(80, "localhost", 8000);
+        if let ForwardingConfig::Remote(remote) = config {
+            assert_eq!(remote.remote_port, 80);
+            assert_eq!(remote.local_host, "localhost");
+            assert_eq!(remote.local_port, 8000);
+        } else {
+            panic!("Expected Remote variant");
+        }
+    }
+
+    #[test]
+    fn test_forwarding_config_dynamic_helper() {
+        let config = ForwardingConfig::dynamic(9050);
+        if let ForwardingConfig::Dynamic(dynamic) = config {
+            assert_eq!(dynamic.local_port, 9050);
+            assert_eq!(dynamic.bind_address, "127.0.0.1");
+        } else {
+            panic!("Expected Dynamic variant");
+        }
+    }
+
+    #[test]
+    fn test_forwarding_serialization() {
+        let local = ForwardingConfig::local(3306, "mysql.internal", 3306);
+        let json = serde_json::to_string(&local).unwrap();
+        assert!(json.contains("\"type\":\"Local\""));
+
+        let deserialized: ForwardingConfig = serde_json::from_str(&json).unwrap();
+        assert_eq!(local, deserialized);
+    }
+
+    #[test]
+    fn test_forwarding_equality() {
+        let fwd1 = ForwardingConfig::local(8080, "host", 80);
+        let fwd2 = ForwardingConfig::local(8080, "host", 80);
+        let fwd3 = ForwardingConfig::local(8081, "host", 80);
+
+        assert_eq!(fwd1, fwd2);
+        assert_ne!(fwd1, fwd3);
+    }
+
+    #[test]
+    fn test_forwarding_clone() {
+        let original = ForwardingConfig::dynamic(1080);
+        let cloned = original.clone();
+        assert_eq!(original, cloned);
+    }
 }

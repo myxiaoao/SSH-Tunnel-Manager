@@ -168,6 +168,7 @@ impl Default for ValidationService {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use tempfile::tempdir;
 
     #[test]
     fn test_validate_port_range() {
@@ -204,7 +205,7 @@ mod tests {
 
         assert!(service.get_port_hint(22).is_some());
         assert!(service.get_port_hint(3306).is_some());
-        assert!(service.get_port_hint(99999).is_none());
+        assert!(service.get_port_hint(12345).is_none()); // Unknown port
     }
 
     #[tokio::test]
@@ -228,5 +229,134 @@ mod tests {
         assert!(service.validate_connection("", 22, "user").is_err());
         assert!(service.validate_connection("localhost", 0, "user").is_err());
         assert!(service.validate_connection("localhost", 22, "").is_err());
+    }
+
+    #[test]
+    fn test_validate_port_range_privileged() {
+        let service = ValidationService::new();
+
+        // Privileged ports should still be valid, just warn
+        assert!(service.validate_port_range(1).is_ok());
+        assert!(service.validate_port_range(80).is_ok());
+        assert!(service.validate_port_range(443).is_ok());
+        assert!(service.validate_port_range(1023).is_ok());
+        assert!(service.validate_port_range(1024).is_ok());
+    }
+
+    #[test]
+    fn test_validate_host_ipv6() {
+        let service = ValidationService::new();
+
+        assert!(service.validate_host("::1").is_ok());
+        assert!(service.validate_host("2001:db8::1").is_ok());
+        assert!(service.validate_host("fe80::1").is_ok());
+    }
+
+    #[test]
+    fn test_validate_host_with_underscore() {
+        let service = ValidationService::new();
+
+        // Underscores are allowed in hostnames
+        assert!(service.validate_host("host_name.example.com").is_ok());
+        assert!(service.validate_host("my_server").is_ok());
+    }
+
+    #[test]
+    fn test_validate_host_invalid_chars() {
+        let service = ValidationService::new();
+
+        assert!(service.validate_host("host name").is_err()); // space
+        assert!(service.validate_host("host@name").is_err()); // @
+        assert!(service.validate_host("host:name").is_err()); // :
+        assert!(service.validate_host("host/name").is_err()); // /
+    }
+
+    #[test]
+    fn test_validate_host_edge_cases() {
+        let service = ValidationService::new();
+
+        assert!(service.validate_host("a").is_ok()); // single char
+        assert!(service.validate_host("host-").is_err()); // ends with dash
+        assert!(service.validate_host("-host").is_err()); // starts with dash
+        assert!(service.validate_host("host-name").is_ok()); // dash in middle
+    }
+
+    #[test]
+    fn test_get_all_port_hints() {
+        let service = ValidationService::new();
+
+        assert_eq!(service.get_port_hint(22), Some("SSH default port"));
+        assert_eq!(service.get_port_hint(80), Some("HTTP default port"));
+        assert_eq!(service.get_port_hint(443), Some("HTTPS default port"));
+        assert_eq!(service.get_port_hint(3306), Some("MySQL default port"));
+        assert_eq!(service.get_port_hint(5432), Some("PostgreSQL default port"));
+        assert_eq!(service.get_port_hint(6379), Some("Redis default port"));
+        assert_eq!(service.get_port_hint(27017), Some("MongoDB default port"));
+        assert_eq!(service.get_port_hint(5672), Some("RabbitMQ default port"));
+        assert_eq!(service.get_port_hint(9200), Some("Elasticsearch default port"));
+    }
+
+    #[test]
+    fn test_service_default() {
+        let service = ValidationService::default();
+        assert!(service.validate_port_range(22).is_ok());
+    }
+
+    #[test]
+    fn test_validate_ssh_key_not_found() {
+        let service = ValidationService::new();
+        let result = service.validate_ssh_key(Path::new("/nonexistent/key"));
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_validate_ssh_key_is_directory() {
+        let service = ValidationService::new();
+        let temp = tempdir().unwrap();
+        let result = service.validate_ssh_key(temp.path());
+        assert!(result.is_err());
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn test_validate_ssh_key_correct_permissions() {
+        use std::os::unix::fs::PermissionsExt;
+        use std::fs;
+
+        let service = ValidationService::new();
+        let temp = tempdir().unwrap();
+        let key_path = temp.path().join("test_key");
+
+        // Create a file with correct permissions (600)
+        fs::write(&key_path, "test key content").unwrap();
+        fs::set_permissions(&key_path, fs::Permissions::from_mode(0o600)).unwrap();
+
+        let result = service.validate_ssh_key(&key_path);
+        assert!(result.is_ok());
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn test_validate_ssh_key_wrong_permissions() {
+        use std::os::unix::fs::PermissionsExt;
+        use std::fs;
+
+        let service = ValidationService::new();
+        let temp = tempdir().unwrap();
+        let key_path = temp.path().join("test_key");
+
+        // Create a file with wrong permissions (644)
+        fs::write(&key_path, "test key content").unwrap();
+        fs::set_permissions(&key_path, fs::Permissions::from_mode(0o644)).unwrap();
+
+        let result = service.validate_ssh_key(&key_path);
+        assert!(result.is_err());
+    }
+
+    #[tokio::test]
+    async fn test_check_port_invalid_host() {
+        let service = ValidationService::new();
+        let result = service.check_port_available("invalid host name", 8080).await;
+        assert!(result.is_err());
     }
 }
