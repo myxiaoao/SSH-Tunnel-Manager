@@ -142,7 +142,10 @@ fn test_port_hints() {
     assert_eq!(service.get_port_hint(6379), Some("Redis default port"));
     assert_eq!(service.get_port_hint(27017), Some("MongoDB default port"));
     assert_eq!(service.get_port_hint(5672), Some("RabbitMQ default port"));
-    assert_eq!(service.get_port_hint(9200), Some("Elasticsearch default port"));
+    assert_eq!(
+        service.get_port_hint(9200),
+        Some("Elasticsearch default port")
+    );
 
     // Unknown ports should have no hint
     assert_eq!(service.get_port_hint(12345), None);
@@ -176,7 +179,9 @@ async fn test_check_port_with_invalid_host() {
     let service = create_validation_service();
 
     // Invalid host format
-    let result = service.check_port_available("not a valid host!", 8080).await;
+    let result = service
+        .check_port_available("not a valid host!", 8080)
+        .await;
     assert!(result.is_err());
 }
 
@@ -187,7 +192,9 @@ async fn test_port_in_use_detection() {
     let service = create_validation_service();
 
     // Bind to a port first
-    let listener = TcpListener::bind("127.0.0.1:0").await.expect("Failed to bind");
+    let listener = TcpListener::bind("127.0.0.1:0")
+        .await
+        .expect("Failed to bind");
     let port = listener.local_addr().expect("Failed to get address").port();
 
     // Check if the bound port is reported as unavailable
@@ -203,7 +210,10 @@ async fn test_port_in_use_detection() {
 
     let result_after = service.check_port_available("127.0.0.1", port).await;
     assert!(result_after.is_ok());
-    assert!(result_after.unwrap(), "Port should be available after release");
+    assert!(
+        result_after.unwrap(),
+        "Port should be available after release"
+    );
 }
 
 // =============================================================================
@@ -235,8 +245,11 @@ fn test_validate_key_with_correct_permissions() {
     let key_path = temp.path().join("id_rsa");
 
     // Create a mock key file with correct permissions (600)
-    fs::write(&key_path, "-----BEGIN OPENSSH PRIVATE KEY-----\ntest\n-----END OPENSSH PRIVATE KEY-----")
-        .expect("Failed to write key file");
+    fs::write(
+        &key_path,
+        "-----BEGIN OPENSSH PRIVATE KEY-----\ntest\n-----END OPENSSH PRIVATE KEY-----",
+    )
+    .expect("Failed to write key file");
     fs::set_permissions(&key_path, fs::Permissions::from_mode(0o600))
         .expect("Failed to set permissions");
 
@@ -252,8 +265,11 @@ fn test_validate_key_with_400_permissions() {
     let key_path = temp.path().join("id_rsa");
 
     // Create a mock key file with 400 permissions
-    fs::write(&key_path, "-----BEGIN OPENSSH PRIVATE KEY-----\ntest\n-----END OPENSSH PRIVATE KEY-----")
-        .expect("Failed to write key file");
+    fs::write(
+        &key_path,
+        "-----BEGIN OPENSSH PRIVATE KEY-----\ntest\n-----END OPENSSH PRIVATE KEY-----",
+    )
+    .expect("Failed to write key file");
     fs::set_permissions(&key_path, fs::Permissions::from_mode(0o400))
         .expect("Failed to set permissions");
 
@@ -269,8 +285,11 @@ fn test_validate_key_with_wrong_permissions() {
     let key_path = temp.path().join("id_rsa");
 
     // Create a mock key file with wrong permissions (644)
-    fs::write(&key_path, "-----BEGIN OPENSSH PRIVATE KEY-----\ntest\n-----END OPENSSH PRIVATE KEY-----")
-        .expect("Failed to write key file");
+    fs::write(
+        &key_path,
+        "-----BEGIN OPENSSH PRIVATE KEY-----\ntest\n-----END OPENSSH PRIVATE KEY-----",
+    )
+    .expect("Failed to write key file");
     fs::set_permissions(&key_path, fs::Permissions::from_mode(0o644))
         .expect("Failed to set permissions");
 
@@ -311,9 +330,21 @@ fn test_validate_complete_connection() {
     let service = create_validation_service();
 
     // Valid connection
-    assert!(service.validate_connection("example.com", 22, "user").is_ok());
-    assert!(service.validate_connection("192.168.1.1", 2222, "admin").is_ok());
-    assert!(service.validate_connection("localhost", 8080, "developer").is_ok());
+    assert!(
+        service
+            .validate_connection("example.com", 22, "user")
+            .is_ok()
+    );
+    assert!(
+        service
+            .validate_connection("192.168.1.1", 2222, "admin")
+            .is_ok()
+    );
+    assert!(
+        service
+            .validate_connection("localhost", 8080, "developer")
+            .is_ok()
+    );
 }
 
 #[test]
@@ -328,7 +359,11 @@ fn test_validate_connection_invalid_host() {
 fn test_validate_connection_invalid_port() {
     let service = create_validation_service();
 
-    assert!(service.validate_connection("example.com", 0, "user").is_err());
+    assert!(
+        service
+            .validate_connection("example.com", 0, "user")
+            .is_err()
+    );
 }
 
 #[test]
@@ -381,7 +416,11 @@ async fn test_complete_validation_workflow() {
     assert_eq!(hint, Some("SSH default port"));
 
     // Step 4: Validate complete connection
-    assert!(service.validate_connection("production.example.com", 22, "deploy").is_ok());
+    assert!(
+        service
+            .validate_connection("production.example.com", 22, "deploy")
+            .is_ok()
+    );
 }
 
 #[tokio::test]

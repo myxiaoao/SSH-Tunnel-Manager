@@ -1,8 +1,8 @@
 use crate::models::{DynamicForwarding, ForwardingConfig, LocalForwarding, RemoteForwarding};
 use crate::services::ssh_service::SshSession;
 use crate::utils::error::{Result, SshToolError};
-use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
+use std::sync::atomic::{AtomicU64, Ordering};
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::{TcpListener, TcpStream};
 use tokio::sync::Mutex;
@@ -13,6 +13,12 @@ use tokio::task::JoinHandle;
 pub struct TrafficCounter {
     bytes_sent: Arc<AtomicU64>,
     bytes_received: Arc<AtomicU64>,
+}
+
+impl Default for TrafficCounter {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl TrafficCounter {
@@ -56,7 +62,11 @@ pub struct TunnelHandle {
 }
 
 impl TunnelHandle {
-    pub fn new(config: ForwardingConfig, traffic_counter: TrafficCounter, task: JoinHandle<()>) -> Self {
+    pub fn new(
+        config: ForwardingConfig,
+        traffic_counter: TrafficCounter,
+        task: JoinHandle<()>,
+    ) -> Self {
         Self {
             id: uuid::Uuid::new_v4(),
             config,
@@ -80,7 +90,7 @@ impl TunnelHandle {
     /// Check if tunnel is still running
     #[allow(dead_code)]
     pub fn is_running(&self) -> bool {
-        self.task.as_ref().map_or(false, |t| !t.is_finished())
+        self.task.as_ref().is_some_and(|t| !t.is_finished())
     }
 }
 
@@ -109,15 +119,13 @@ impl TunnelService {
         );
 
         let bind_addr = format!("{}:{}", config.bind_address, config.local_port);
-        let listener = TcpListener::bind(&bind_addr)
-            .await
-            .map_err(|e| {
-                if e.kind() == std::io::ErrorKind::AddrInUse {
-                    SshToolError::PortInUse(config.local_port)
-                } else {
-                    SshToolError::TunnelFailed(format!("Failed to bind to {}: {}", bind_addr, e))
-                }
-            })?;
+        let listener = TcpListener::bind(&bind_addr).await.map_err(|e| {
+            if e.kind() == std::io::ErrorKind::AddrInUse {
+                SshToolError::PortInUse(config.local_port)
+            } else {
+                SshToolError::TunnelFailed(format!("Failed to bind to {}: {}", bind_addr, e))
+            }
+        })?;
 
         tracing::info!("Listening on {}", bind_addr);
 
@@ -303,10 +311,7 @@ impl TunnelService {
                     }
                 }
 
-                tracing::trace!(
-                    "Remote forward on port {} active (monitored)",
-                    remote_port
-                );
+                tracing::trace!("Remote forward on port {} active (monitored)", remote_port);
             }
 
             tracing::info!(
@@ -335,15 +340,13 @@ impl TunnelService {
         );
 
         let bind_addr = format!("{}:{}", config.bind_address, config.local_port);
-        let listener = TcpListener::bind(&bind_addr)
-            .await
-            .map_err(|e| {
-                if e.kind() == std::io::ErrorKind::AddrInUse {
-                    SshToolError::PortInUse(config.local_port)
-                } else {
-                    SshToolError::TunnelFailed(format!("Failed to bind to {}: {}", bind_addr, e))
-                }
-            })?;
+        let listener = TcpListener::bind(&bind_addr).await.map_err(|e| {
+            if e.kind() == std::io::ErrorKind::AddrInUse {
+                SshToolError::PortInUse(config.local_port)
+            } else {
+                SshToolError::TunnelFailed(format!("Failed to bind to {}: {}", bind_addr, e))
+            }
+        })?;
 
         tracing::info!("SOCKS5 proxy listening on {}", bind_addr);
 
@@ -360,9 +363,18 @@ impl TunnelService {
                         let traffic_counter = traffic_counter_clone.clone();
 
                         tokio::spawn(async move {
-                            match Self::handle_socks_connection(session, &mut stream, traffic_counter).await {
+                            match Self::handle_socks_connection(
+                                session,
+                                &mut stream,
+                                traffic_counter,
+                            )
+                            .await
+                            {
                                 Ok(_) => {
-                                    tracing::debug!("SOCKS connection from {} completed", peer_addr);
+                                    tracing::debug!(
+                                        "SOCKS connection from {} completed",
+                                        peer_addr
+                                    );
                                 }
                                 Err(e) => {
                                     tracing::error!("SOCKS error for {}: {}", peer_addr, e);
@@ -456,7 +468,9 @@ impl TunnelService {
         let mut buf = [0u8; 512];
 
         // Read version + methods
-        stream.read_exact(&mut buf[..2]).await
+        stream
+            .read_exact(&mut buf[..2])
+            .await
             .map_err(|e| SshToolError::TunnelFailed(format!("SOCKS handshake failed: {}", e)))?;
 
         if buf[0] != 5 {
@@ -466,15 +480,21 @@ impl TunnelService {
         }
 
         let nmethods = buf[1] as usize;
-        stream.read_exact(&mut buf[..nmethods]).await
+        stream
+            .read_exact(&mut buf[..nmethods])
+            .await
             .map_err(|e| SshToolError::TunnelFailed(format!("SOCKS handshake failed: {}", e)))?;
 
         // Send method selection (no authentication)
-        stream.write_all(&[5, 0]).await
+        stream
+            .write_all(&[5, 0])
+            .await
             .map_err(|e| SshToolError::TunnelFailed(format!("SOCKS handshake failed: {}", e)))?;
 
         // Read connection request
-        stream.read_exact(&mut buf[..4]).await
+        stream
+            .read_exact(&mut buf[..4])
+            .await
             .map_err(|e| SshToolError::TunnelFailed(format!("SOCKS request failed: {}", e)))?;
 
         if buf[0] != 5 || buf[1] != 1 {
@@ -487,19 +507,22 @@ impl TunnelService {
         let (dest_host, dest_port) = match atyp {
             1 => {
                 // IPv4
-                stream.read_exact(&mut buf[..6]).await
-                    .map_err(|e| SshToolError::TunnelFailed(format!("SOCKS address failed: {}", e)))?;
+                stream.read_exact(&mut buf[..6]).await.map_err(|e| {
+                    SshToolError::TunnelFailed(format!("SOCKS address failed: {}", e))
+                })?;
                 let host = format!("{}.{}.{}.{}", buf[0], buf[1], buf[2], buf[3]);
                 let port = u16::from_be_bytes([buf[4], buf[5]]);
                 (host, port)
             }
             3 => {
                 // Domain name
-                stream.read_exact(&mut buf[..1]).await
-                    .map_err(|e| SshToolError::TunnelFailed(format!("SOCKS domain failed: {}", e)))?;
+                stream.read_exact(&mut buf[..1]).await.map_err(|e| {
+                    SshToolError::TunnelFailed(format!("SOCKS domain failed: {}", e))
+                })?;
                 let len = buf[0] as usize;
-                stream.read_exact(&mut buf[..len + 2]).await
-                    .map_err(|e| SshToolError::TunnelFailed(format!("SOCKS domain failed: {}", e)))?;
+                stream.read_exact(&mut buf[..len + 2]).await.map_err(|e| {
+                    SshToolError::TunnelFailed(format!("SOCKS domain failed: {}", e))
+                })?;
                 let host = String::from_utf8_lossy(&buf[..len]).to_string();
                 let port = u16::from_be_bytes([buf[len], buf[len + 1]]);
                 (host, port)
@@ -512,7 +535,9 @@ impl TunnelService {
         };
 
         // Send success reply
-        stream.write_all(&[5, 0, 0, 1, 0, 0, 0, 0, 0, 0]).await
+        stream
+            .write_all(&[5, 0, 0, 1, 0, 0, 0, 0, 0, 0])
+            .await
             .map_err(|e| SshToolError::TunnelFailed(format!("SOCKS reply failed: {}", e)))?;
 
         Ok((dest_host, dest_port))
@@ -524,12 +549,8 @@ impl TunnelService {
         config: ForwardingConfig,
     ) -> Result<TunnelHandle> {
         match config {
-            ForwardingConfig::Local(local) => {
-                Self::create_local_forward(session, local).await
-            }
-            ForwardingConfig::Remote(remote) => {
-                Self::create_remote_forward(session, remote).await
-            }
+            ForwardingConfig::Local(local) => Self::create_local_forward(session, local).await,
+            ForwardingConfig::Remote(remote) => Self::create_remote_forward(session, remote).await,
             ForwardingConfig::Dynamic(dynamic) => {
                 Self::create_dynamic_forward(session, dynamic).await
             }

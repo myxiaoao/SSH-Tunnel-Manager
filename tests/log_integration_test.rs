@@ -184,23 +184,53 @@ async fn test_filter_logs_by_level() {
 
     // Log events with different levels
     service
-        .log(conn_id, "Test", LogLevel::Info, ConnectionEvent::Connected, None)
+        .log(
+            conn_id,
+            "Test",
+            LogLevel::Info,
+            ConnectionEvent::Connected,
+            None,
+        )
         .await
         .unwrap();
     service
-        .log(conn_id, "Test", LogLevel::Info, ConnectionEvent::Disconnected, None)
+        .log(
+            conn_id,
+            "Test",
+            LogLevel::Info,
+            ConnectionEvent::Disconnected,
+            None,
+        )
         .await
         .unwrap();
     service
-        .log(conn_id, "Test", LogLevel::Warning, ConnectionEvent::IdleTimeout, None)
+        .log(
+            conn_id,
+            "Test",
+            LogLevel::Warning,
+            ConnectionEvent::IdleTimeout,
+            None,
+        )
         .await
         .unwrap();
     service
-        .log(conn_id, "Test", LogLevel::Error, ConnectionEvent::ConnectionFailed, None)
+        .log(
+            conn_id,
+            "Test",
+            LogLevel::Error,
+            ConnectionEvent::ConnectionFailed,
+            None,
+        )
         .await
         .unwrap();
     service
-        .log(conn_id, "Test", LogLevel::Error, ConnectionEvent::AuthFailed, None)
+        .log(
+            conn_id,
+            "Test",
+            LogLevel::Error,
+            ConnectionEvent::AuthFailed,
+            None,
+        )
         .await
         .unwrap();
 
@@ -277,7 +307,13 @@ async fn test_clear_logs() {
 
     for _ in 0..10 {
         service
-            .log(conn_id, "Test", LogLevel::Info, ConnectionEvent::Connected, None)
+            .log(
+                conn_id,
+                "Test",
+                LogLevel::Info,
+                ConnectionEvent::Connected,
+                None,
+            )
             .await
             .unwrap();
     }
@@ -366,11 +402,23 @@ async fn test_file_logging_all_levels() {
     let conn_id = Uuid::new_v4();
 
     service
-        .log(conn_id, "Info", LogLevel::Info, ConnectionEvent::Connected, None)
+        .log(
+            conn_id,
+            "Info",
+            LogLevel::Info,
+            ConnectionEvent::Connected,
+            None,
+        )
         .await
         .unwrap();
     service
-        .log(conn_id, "Warning", LogLevel::Warning, ConnectionEvent::IdleTimeout, None)
+        .log(
+            conn_id,
+            "Warning",
+            LogLevel::Warning,
+            ConnectionEvent::IdleTimeout,
+            None,
+        )
         .await
         .unwrap();
     service
@@ -399,9 +447,14 @@ fn test_log_format_contains_all_info() {
     let conn_id = Uuid::new_v4();
     let session_id = Uuid::new_v4();
 
-    let log = ConnectionLog::new(conn_id, "Test Server", LogLevel::Info, ConnectionEvent::Connected)
-        .with_session(session_id)
-        .with_message("Connection established");
+    let log = ConnectionLog::new(
+        conn_id,
+        "Test Server",
+        LogLevel::Info,
+        ConnectionEvent::Connected,
+    )
+    .with_session(session_id)
+    .with_message("Connection established");
 
     let formatted = log.format();
 

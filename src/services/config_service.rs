@@ -45,9 +45,7 @@ impl ConfigService {
     fn get_config_dir() -> Result<PathBuf> {
         ProjectDirs::from("com", "myxiaoao", "ssh-tunnel-manager")
             .map(|dirs| dirs.config_dir().to_path_buf())
-            .ok_or_else(|| {
-                SshToolError::ConfigError("Failed to get config directory".to_string())
-            })
+            .ok_or_else(|| SshToolError::ConfigError("Failed to get config directory".to_string()))
     }
 
     /// Get path to connections config file
@@ -75,8 +73,9 @@ impl ConfigService {
         }
 
         let content = fs::read_to_string(&path)?;
-        let connections: ConnectionsConfig = toml::from_str(&content)
-            .map_err(|e| SshToolError::ConfigError(format!("Failed to parse connections: {}", e)))?;
+        let connections: ConnectionsConfig = toml::from_str(&content).map_err(|e| {
+            SshToolError::ConfigError(format!("Failed to parse connections: {}", e))
+        })?;
 
         tracing::info!("Loaded {} connections", connections.connections.len());
         Ok(connections.connections)
@@ -88,8 +87,9 @@ impl ConfigService {
             connections: connections.to_vec(),
         };
 
-        let content = toml::to_string_pretty(&config)
-            .map_err(|e| SshToolError::ConfigError(format!("Failed to serialize connections: {}", e)))?;
+        let content = toml::to_string_pretty(&config).map_err(|e| {
+            SshToolError::ConfigError(format!("Failed to serialize connections: {}", e))
+        })?;
 
         let path = self.connections_file();
         fs::write(&path, content)?;
@@ -159,8 +159,9 @@ impl ConfigService {
             templates: templates.to_vec(),
         };
 
-        let content = toml::to_string_pretty(&config)
-            .map_err(|e| SshToolError::ConfigError(format!("Failed to serialize templates: {}", e)))?;
+        let content = toml::to_string_pretty(&config).map_err(|e| {
+            SshToolError::ConfigError(format!("Failed to serialize templates: {}", e))
+        })?;
 
         let path = self.templates_file();
         fs::write(&path, content)?;
@@ -188,8 +189,9 @@ impl ConfigService {
 
     /// Save application settings
     pub fn save_settings(&self, settings: &AppSettings) -> Result<()> {
-        let content = toml::to_string_pretty(settings)
-            .map_err(|e| SshToolError::ConfigError(format!("Failed to serialize settings: {}", e)))?;
+        let content = toml::to_string_pretty(settings).map_err(|e| {
+            SshToolError::ConfigError(format!("Failed to serialize settings: {}", e))
+        })?;
 
         let path = self.settings_file();
         fs::write(&path, content)?;
@@ -434,7 +436,10 @@ mod tests {
         service.save_connection(&connection).unwrap();
         let loaded = service.load_connections().unwrap();
 
-        assert!(matches!(loaded[0].auth_method, AuthMethod::PublicKey { .. }));
+        assert!(matches!(
+            loaded[0].auth_method,
+            AuthMethod::PublicKey { .. }
+        ));
     }
 
     #[test]

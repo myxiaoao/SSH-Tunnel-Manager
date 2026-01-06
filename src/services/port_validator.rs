@@ -1,9 +1,9 @@
 #![allow(dead_code)]
 
 use crate::utils::error::{Result, SshToolError};
-use std::net::{TcpListener, SocketAddr};
-use std::collections::HashSet;
 use once_cell::sync::Lazy;
+use std::collections::HashSet;
+use std::net::{SocketAddr, TcpListener};
 use std::sync::Mutex;
 
 /// Well-known port ranges
@@ -18,20 +18,18 @@ const DYNAMIC_PORTS_END: u16 = 65535;
 static RESERVED_PORTS: Lazy<HashSet<u16>> = Lazy::new(|| {
     let mut set = HashSet::new();
     // Common system services
-    set.insert(22);    // SSH
-    set.insert(80);    // HTTP
-    set.insert(443);   // HTTPS
-    set.insert(3306);  // MySQL (often used, but allowed for tunneling)
-    set.insert(5432);  // PostgreSQL (often used, but allowed for tunneling)
-    set.insert(6379);  // Redis (often used, but allowed for tunneling)
+    set.insert(22); // SSH
+    set.insert(80); // HTTP
+    set.insert(443); // HTTPS
+    set.insert(3306); // MySQL (often used, but allowed for tunneling)
+    set.insert(5432); // PostgreSQL (often used, but allowed for tunneling)
+    set.insert(6379); // Redis (often used, but allowed for tunneling)
     set.insert(27017); // MongoDB (often used, but allowed for tunneling)
     set
 });
 
 /// Currently used ports by our application
-static ACTIVE_PORTS: Lazy<Mutex<HashSet<u16>>> = Lazy::new(|| {
-    Mutex::new(HashSet::new())
-});
+static ACTIVE_PORTS: Lazy<Mutex<HashSet<u16>>> = Lazy::new(|| Mutex::new(HashSet::new()));
 
 /// Port validation service
 pub struct PortValidator;
@@ -39,22 +37,22 @@ pub struct PortValidator;
 impl PortValidator {
     /// Check if a port is in valid range
     pub fn is_valid_port(port: u16) -> bool {
-        port > 0  // u16 is always <= 65535, so we only check > 0
+        port > 0 // u16 is always <= 65535, so we only check > 0
     }
 
     /// Check if a port is a system/privileged port (requires root)
     pub fn is_system_port(port: u16) -> bool {
-        port >= SYSTEM_PORTS_START && port <= SYSTEM_PORTS_END
+        (SYSTEM_PORTS_START..=SYSTEM_PORTS_END).contains(&port)
     }
 
     /// Check if a port is in the user port range (recommended for user applications)
     pub fn is_user_port(port: u16) -> bool {
-        port >= USER_PORTS_START && port <= USER_PORTS_END
+        (USER_PORTS_START..=USER_PORTS_END).contains(&port)
     }
 
     /// Check if a port is in the dynamic/private port range
     pub fn is_dynamic_port(port: u16) -> bool {
-        port >= DYNAMIC_PORTS_START && port <= DYNAMIC_PORTS_END
+        (DYNAMIC_PORTS_START..=DYNAMIC_PORTS_END).contains(&port)
     }
 
     /// Check if a port is commonly reserved (SSH, HTTP, etc.)
@@ -67,9 +65,7 @@ impl PortValidator {
         let addr = format!("{}:{}", bind_address, port);
 
         match addr.parse::<SocketAddr>() {
-            Ok(socket_addr) => {
-                TcpListener::bind(socket_addr).is_ok()
-            }
+            Ok(socket_addr) => TcpListener::bind(socket_addr).is_ok(),
             Err(_) => false,
         }
     }
@@ -93,7 +89,9 @@ impl PortValidator {
             tracing::debug!("Marked port {} as in use", port);
             Ok(())
         } else {
-            Err(SshToolError::ConfigError("Failed to acquire port lock".to_string()))
+            Err(SshToolError::ConfigError(
+                "Failed to acquire port lock".to_string(),
+            ))
         }
     }
 
@@ -152,13 +150,7 @@ impl PortValidator {
         }
 
         // Try in the user port range
-        for port in USER_PORTS_START..USER_PORTS_END {
-            if Self::is_port_available(port, bind_address) {
-                return Some(port);
-            }
-        }
-
-        None
+        (USER_PORTS_START..USER_PORTS_END).find(|&port| Self::is_port_available(port, bind_address))
     }
 
     /// Get port range recommendation based on use case
@@ -174,18 +166,19 @@ impl PortValidator {
 
     /// Find the next available port in a range
     pub fn find_available_port_in_range(start: u16, end: u16, bind_address: &str) -> Option<u16> {
-        for port in start..=end {
-            if Self::is_valid_port(port) &&
-               !Self::is_port_used_by_app(port) &&
-               Self::is_port_available(port, bind_address) {
-                return Some(port);
-            }
-        }
-        None
+        (start..=end).find(|&port| {
+            Self::is_valid_port(port)
+                && !Self::is_port_used_by_app(port)
+                && Self::is_port_available(port, bind_address)
+        })
     }
 
     /// Validate multiple ports at once (for connections with multiple forwards)
-    pub fn validate_ports(ports: &[u16], bind_address: &str, allow_system_ports: bool) -> Result<()> {
+    pub fn validate_ports(
+        ports: &[u16],
+        bind_address: &str,
+        allow_system_ports: bool,
+    ) -> Result<()> {
         // Check for duplicates
         let mut seen = HashSet::new();
         for &port in ports {

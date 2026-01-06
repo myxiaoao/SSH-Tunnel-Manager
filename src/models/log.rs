@@ -81,7 +81,10 @@ pub enum ConnectionEvent {
     CommandExecuted { command: String },
 
     /// Port forwarding activity
-    ForwardingActivity { bytes_sent: u64, bytes_received: u64 },
+    ForwardingActivity {
+        bytes_sent: u64,
+        bytes_received: u64,
+    },
 }
 
 impl ConnectionLog {
@@ -146,14 +149,21 @@ impl ConnectionLog {
             ConnectionEvent::CommandExecuted { command } => {
                 format!("Executed: {}", command)
             }
-            ConnectionEvent::ForwardingActivity { bytes_sent, bytes_received } => {
-                format!("Traffic: sent {}, received {}",
+            ConnectionEvent::ForwardingActivity {
+                bytes_sent,
+                bytes_received,
+            } => {
+                format!(
+                    "Traffic: sent {}, received {}",
                     Self::format_bytes(*bytes_sent),
-                    Self::format_bytes(*bytes_received))
+                    Self::format_bytes(*bytes_received)
+                )
             }
         };
 
-        let msg_part = self.message.as_ref()
+        let msg_part = self
+            .message
+            .as_ref()
             .map(|m| format!(" - {}", m))
             .unwrap_or_default();
 
@@ -164,7 +174,9 @@ impl ConnectionLog {
             self.connection_name,
             event_desc,
             msg_part,
-            self.session_id.map(|id| format!(" (session: {})", id)).unwrap_or_default()
+            self.session_id
+                .map(|id| format!(" (session: {})", id))
+                .unwrap_or_default()
         )
     }
 
@@ -202,7 +214,12 @@ mod tests {
     #[test]
     fn test_connection_log_new() {
         let conn_id = Uuid::new_v4();
-        let log = ConnectionLog::new(conn_id, "Test Connection", LogLevel::Info, ConnectionEvent::Connected);
+        let log = ConnectionLog::new(
+            conn_id,
+            "Test Connection",
+            LogLevel::Info,
+            ConnectionEvent::Connected,
+        );
 
         assert_eq!(log.connection_id, conn_id);
         assert_eq!(log.connection_name, "Test Connection");
@@ -226,8 +243,13 @@ mod tests {
     #[test]
     fn test_connection_log_with_message() {
         let conn_id = Uuid::new_v4();
-        let log = ConnectionLog::new(conn_id, "Test", LogLevel::Warning, ConnectionEvent::ConnectionFailed)
-            .with_message("Connection timeout");
+        let log = ConnectionLog::new(
+            conn_id,
+            "Test",
+            LogLevel::Warning,
+            ConnectionEvent::ConnectionFailed,
+        )
+        .with_message("Connection timeout");
 
         assert_eq!(log.message, Some("Connection timeout".to_string()));
     }
@@ -252,7 +274,12 @@ mod tests {
     #[test]
     fn test_connection_log_format_connected() {
         let conn_id = Uuid::new_v4();
-        let log = ConnectionLog::new(conn_id, "My Server", LogLevel::Info, ConnectionEvent::Connected);
+        let log = ConnectionLog::new(
+            conn_id,
+            "My Server",
+            LogLevel::Info,
+            ConnectionEvent::Connected,
+        );
 
         let formatted = log.format();
         assert!(formatted.contains("INFO"));
@@ -263,8 +290,13 @@ mod tests {
     #[test]
     fn test_connection_log_format_with_message() {
         let conn_id = Uuid::new_v4();
-        let log = ConnectionLog::new(conn_id, "Test", LogLevel::Error, ConnectionEvent::ConnectionFailed)
-            .with_message("Host unreachable");
+        let log = ConnectionLog::new(
+            conn_id,
+            "Test",
+            LogLevel::Error,
+            ConnectionEvent::ConnectionFailed,
+        )
+        .with_message("Host unreachable");
 
         let formatted = log.format();
         assert!(formatted.contains("ERROR"));
@@ -279,7 +311,9 @@ mod tests {
             conn_id,
             "Test",
             LogLevel::Info,
-            ConnectionEvent::TunnelCreated { tunnel_type: "local".to_string() },
+            ConnectionEvent::TunnelCreated {
+                tunnel_type: "local".to_string(),
+            },
         );
 
         let formatted = log.format();
@@ -294,8 +328,8 @@ mod tests {
             "Test",
             LogLevel::Info,
             ConnectionEvent::ForwardingActivity {
-                bytes_sent: 1024 * 1024 * 5,  // 5 MB
-                bytes_received: 1024 * 100,    // 100 KB
+                bytes_sent: 1024 * 1024 * 5, // 5 MB
+                bytes_received: 1024 * 100,  // 100 KB
             },
         );
 
@@ -328,13 +362,22 @@ mod tests {
             ConnectionEvent::ConnectionFailed,
             ConnectionEvent::AuthSuccess,
             ConnectionEvent::AuthFailed,
-            ConnectionEvent::TunnelCreated { tunnel_type: "local".to_string() },
-            ConnectionEvent::TunnelFailed { tunnel_type: "remote".to_string() },
+            ConnectionEvent::TunnelCreated {
+                tunnel_type: "local".to_string(),
+            },
+            ConnectionEvent::TunnelFailed {
+                tunnel_type: "remote".to_string(),
+            },
             ConnectionEvent::Disconnected,
             ConnectionEvent::IdleTimeout,
             ConnectionEvent::ErrorDisconnect,
-            ConnectionEvent::CommandExecuted { command: "ls -la".to_string() },
-            ConnectionEvent::ForwardingActivity { bytes_sent: 100, bytes_received: 200 },
+            ConnectionEvent::CommandExecuted {
+                command: "ls -la".to_string(),
+            },
+            ConnectionEvent::ForwardingActivity {
+                bytes_sent: 100,
+                bytes_received: 200,
+            },
         ];
 
         for event in events {
@@ -350,29 +393,49 @@ mod tests {
 
         // Test bytes formatting
         let log_bytes = ConnectionLog::new(
-            conn_id, "Test", LogLevel::Info,
-            ConnectionEvent::ForwardingActivity { bytes_sent: 500, bytes_received: 0 },
+            conn_id,
+            "Test",
+            LogLevel::Info,
+            ConnectionEvent::ForwardingActivity {
+                bytes_sent: 500,
+                bytes_received: 0,
+            },
         );
         assert!(log_bytes.format().contains("500 B"));
 
         // Test KB formatting
         let log_kb = ConnectionLog::new(
-            conn_id, "Test", LogLevel::Info,
-            ConnectionEvent::ForwardingActivity { bytes_sent: 1024 * 5, bytes_received: 0 },
+            conn_id,
+            "Test",
+            LogLevel::Info,
+            ConnectionEvent::ForwardingActivity {
+                bytes_sent: 1024 * 5,
+                bytes_received: 0,
+            },
         );
         assert!(log_kb.format().contains("KB"));
 
         // Test MB formatting
         let log_mb = ConnectionLog::new(
-            conn_id, "Test", LogLevel::Info,
-            ConnectionEvent::ForwardingActivity { bytes_sent: 1024 * 1024 * 5, bytes_received: 0 },
+            conn_id,
+            "Test",
+            LogLevel::Info,
+            ConnectionEvent::ForwardingActivity {
+                bytes_sent: 1024 * 1024 * 5,
+                bytes_received: 0,
+            },
         );
         assert!(log_mb.format().contains("MB"));
 
         // Test GB formatting
         let log_gb = ConnectionLog::new(
-            conn_id, "Test", LogLevel::Info,
-            ConnectionEvent::ForwardingActivity { bytes_sent: 1024 * 1024 * 1024 * 2, bytes_received: 0 },
+            conn_id,
+            "Test",
+            LogLevel::Info,
+            ConnectionEvent::ForwardingActivity {
+                bytes_sent: 1024 * 1024 * 1024 * 2,
+                bytes_received: 0,
+            },
         );
         assert!(log_gb.format().contains("GB"));
     }

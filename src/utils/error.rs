@@ -63,7 +63,9 @@ impl SshToolError {
             Self::InvalidPort(port) => format!("Invalid port number: {}", port),
             Self::InvalidHost(host) => format!("Invalid host address: {}", host),
             Self::KeyFileNotFound(path) => format!("Private key file not found: {}", path),
-            Self::KeyFilePermission => "Private key file permission incorrect, should be 600".to_string(),
+            Self::KeyFilePermission => {
+                "Private key file permission incorrect, should be 600".to_string()
+            }
             Self::AuthenticationFailed(reason) => format!("Authentication failed: {}", reason),
             Self::SshConnectionFailed(reason) => format!("SSH connection failed: {}", reason),
             Self::TunnelFailed(reason) => format!("Tunnel creation failed: {}", reason),
@@ -132,13 +134,19 @@ mod tests {
         assert_eq!(err.user_message(), "Private key file not found: /missing");
 
         let err = SshToolError::KeyFilePermission;
-        assert_eq!(err.user_message(), "Private key file permission incorrect, should be 600");
+        assert_eq!(
+            err.user_message(),
+            "Private key file permission incorrect, should be 600"
+        );
 
         let err = SshToolError::AuthenticationFailed("wrong password".to_string());
         assert_eq!(err.user_message(), "Authentication failed: wrong password");
 
         let err = SshToolError::SshConnectionFailed("connection refused".to_string());
-        assert_eq!(err.user_message(), "SSH connection failed: connection refused");
+        assert_eq!(
+            err.user_message(),
+            "SSH connection failed: connection refused"
+        );
 
         let err = SshToolError::TunnelFailed("port in use".to_string());
         assert_eq!(err.user_message(), "Tunnel creation failed: port in use");

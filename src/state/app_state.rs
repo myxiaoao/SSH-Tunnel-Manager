@@ -114,7 +114,7 @@ impl ConnectionFormData {
             remote_host: "localhost".to_string(),
             remote_port: String::new(),
             bind_address: "127.0.0.1".to_string(),
-            compression: true,  // Enabled by default for better performance
+            compression: true, // Enabled by default for better performance
             quiet_mode: false,
         }
     }
@@ -126,9 +126,12 @@ impl ConnectionFormData {
 
         let (auth_type, private_key_path) = match &conn.auth_method {
             AuthMethod::Password => ("password".to_string(), String::new()),
-            AuthMethod::PublicKey { private_key_path, .. } => {
-                ("publickey".to_string(), private_key_path.to_string_lossy().to_string())
-            }
+            AuthMethod::PublicKey {
+                private_key_path, ..
+            } => (
+                "publickey".to_string(),
+                private_key_path.to_string_lossy().to_string(),
+            ),
         };
 
         // Extract forwarding config
@@ -547,7 +550,11 @@ impl AppState {
 
     /// Check if connection is in connecting state
     pub async fn is_connecting(&self, connection_id: uuid::Uuid) -> bool {
-        self.ui_state.read().await.connecting_ids.contains(&connection_id)
+        self.ui_state
+            .read()
+            .await
+            .connecting_ids
+            .contains(&connection_id)
     }
 
     /// Show delete confirmation for a connection
@@ -600,7 +607,8 @@ impl AppState {
             self.delete_connection(id).await?;
             self.hide_delete_confirm().await;
             self.clear_selection_for_new().await;
-            self.show_success(t!("messages.connection_deleted").to_string()).await;
+            self.show_success(t!("messages.connection_deleted").to_string())
+                .await;
         }
         Ok(())
     }
@@ -642,17 +650,25 @@ impl AppState {
         self.clear_notifications().await;
 
         // Get the connection
-        let connection = self.get_connection(connection_id).await
+        let connection = self
+            .get_connection(connection_id)
+            .await
             .ok_or_else(|| anyhow::anyhow!("Connection not found"))?;
 
-        tracing::info!("Connecting to {}@{}:{}", connection.username, connection.host, connection.port);
+        tracing::info!(
+            "Connecting to {}@{}:{}",
+            connection.username,
+            connection.host,
+            connection.port
+        );
 
         // Establish SSH connection
         let result = async {
             let session = SshService::connect(&connection, password.as_deref()).await?;
 
             // Create session with tunnels
-            let session_id = self.session_manager
+            let session_id = self
+                .session_manager
                 .create_session_with_tunnels(connection.clone(), session)
                 .await?;
 
@@ -660,7 +676,8 @@ impl AppState {
             self.reload_sessions().await?;
 
             Ok::<uuid::Uuid, anyhow::Error>(session_id)
-        }.await;
+        }
+        .await;
 
         // Mark as no longer connecting
         self.set_connecting(connection_id, false).await;
@@ -668,7 +685,8 @@ impl AppState {
         match result {
             Ok(session_id) => {
                 tracing::info!("Successfully connected, session ID: {}", session_id);
-                self.show_success(format!("Connected to {}", connection.name)).await;
+                self.show_success(format!("Connected to {}", connection.name))
+                    .await;
                 Ok(session_id)
             }
             Err(e) => {
@@ -699,12 +717,14 @@ impl AppState {
                 self.reload_sessions().await?;
 
                 tracing::info!("Successfully disconnected session: {}", session_id);
-                self.show_success("Session disconnected successfully".to_string()).await;
+                self.show_success("Session disconnected successfully".to_string())
+                    .await;
                 Ok(())
             }
             Err(e) => {
                 tracing::error!("Disconnect failed: {}", e);
-                self.show_error(format!("Failed to disconnect: {}", e), ErrorSeverity::Error).await;
+                self.show_error(format!("Failed to disconnect: {}", e), ErrorSeverity::Error)
+                    .await;
                 Err(e.into())
             }
         }
@@ -747,7 +767,9 @@ impl AppState {
     /// Create connection from form data
     pub async fn save_connection_from_form(&self) -> anyhow::Result<uuid::Uuid> {
         use crate::models::auth::AuthMethod;
-        use crate::models::forwarding::{ForwardingConfig, LocalForwarding, RemoteForwarding, DynamicForwarding, SocksVersion};
+        use crate::models::forwarding::{
+            DynamicForwarding, ForwardingConfig, LocalForwarding, RemoteForwarding, SocksVersion,
+        };
         use chrono::Utc;
         use std::path::PathBuf;
 
@@ -766,7 +788,9 @@ impl AppState {
         }
 
         // Parse port
-        let port: u16 = form.port.parse()
+        let port: u16 = form
+            .port
+            .parse()
             .map_err(|_| anyhow::anyhow!("Invalid port number"))?;
 
         // Determine auth method
@@ -788,9 +812,13 @@ impl AppState {
         match form.forwarding_type.as_str() {
             "local" => {
                 if !form.local_port.trim().is_empty() && !form.remote_port.trim().is_empty() {
-                    let local_port: u16 = form.local_port.parse()
+                    let local_port: u16 = form
+                        .local_port
+                        .parse()
                         .map_err(|_| anyhow::anyhow!("Invalid local port"))?;
-                    let remote_port: u16 = form.remote_port.parse()
+                    let remote_port: u16 = form
+                        .remote_port
+                        .parse()
                         .map_err(|_| anyhow::anyhow!("Invalid remote port"))?;
 
                     forwarding_configs.push(ForwardingConfig::Local(LocalForwarding {
@@ -807,9 +835,13 @@ impl AppState {
             }
             "remote" => {
                 if !form.remote_port.trim().is_empty() && !form.local_port.trim().is_empty() {
-                    let remote_port: u16 = form.remote_port.parse()
+                    let remote_port: u16 = form
+                        .remote_port
+                        .parse()
                         .map_err(|_| anyhow::anyhow!("Invalid remote port"))?;
-                    let local_port: u16 = form.local_port.parse()
+                    let local_port: u16 = form
+                        .local_port
+                        .parse()
                         .map_err(|_| anyhow::anyhow!("Invalid local port"))?;
 
                     forwarding_configs.push(ForwardingConfig::Remote(RemoteForwarding {
@@ -821,7 +853,9 @@ impl AppState {
             }
             "dynamic" => {
                 if !form.local_port.trim().is_empty() {
-                    let local_port: u16 = form.local_port.parse()
+                    let local_port: u16 = form
+                        .local_port
+                        .parse()
                         .map_err(|_| anyhow::anyhow!("Invalid local port"))?;
 
                     forwarding_configs.push(ForwardingConfig::Dynamic(DynamicForwarding {
@@ -896,10 +930,13 @@ mod tests {
         let filtered = state.get_filtered_connections().await;
 
         // Should filter based on name, host, or username
-        assert!(filtered.is_empty() || filtered.iter().any(|c| {
-            c.name.to_lowercase().contains("test")
-                || c.host.to_lowercase().contains("test")
-                || c.username.to_lowercase().contains("test")
-        }));
+        assert!(
+            filtered.is_empty()
+                || filtered.iter().any(|c| {
+                    c.name.to_lowercase().contains("test")
+                        || c.host.to_lowercase().contains("test")
+                        || c.username.to_lowercase().contains("test")
+                })
+        );
     }
 }

@@ -13,11 +13,7 @@ use gpui_component::theme::{Theme, ThemeMode};
 
 /// Helper function to open the main window
 fn open_main_window(cx: &mut App) {
-    let bounds = Bounds::centered(
-        None,
-        size(px(1200.0), px(800.0)),
-        cx,
-    );
+    let bounds = Bounds::centered(None, size(px(1200.0), px(800.0)), cx);
 
     cx.open_window(
         WindowOptions {

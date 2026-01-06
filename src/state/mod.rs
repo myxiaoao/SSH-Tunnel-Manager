@@ -2,4 +2,4 @@
 pub mod app_state;
 
 #[cfg(feature = "gui")]
-pub use app_state::{AppState, ErrorSeverity, ConnectionFormData};
+pub use app_state::{AppState, ConnectionFormData, ErrorSeverity};

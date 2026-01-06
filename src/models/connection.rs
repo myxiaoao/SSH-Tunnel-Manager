@@ -99,7 +99,11 @@ fn default_idle_timeout() -> Option<u64> {
 
 #[allow(dead_code)]
 impl SshConnection {
-    pub fn new(name: impl Into<String>, host: impl Into<String>, username: impl Into<String>) -> Self {
+    pub fn new(
+        name: impl Into<String>,
+        host: impl Into<String>,
+        username: impl Into<String>,
+    ) -> Self {
         Self {
             id: Uuid::new_v4(),
             name: name.into(),
@@ -219,11 +223,12 @@ mod tests {
 
     #[test]
     fn test_connection_with_auth_method() {
-        let conn = SshConnection::new("Test", "host.com", "user")
-            .with_auth_method(AuthMethod::PublicKey {
+        let conn = SshConnection::new("Test", "host.com", "user").with_auth_method(
+            AuthMethod::PublicKey {
                 private_key_path: PathBuf::from("/home/user/.ssh/id_rsa"),
                 passphrase_required: true,
-            });
+            },
+        );
 
         assert!(matches!(conn.auth_method, AuthMethod::PublicKey { .. }));
     }
@@ -231,8 +236,7 @@ mod tests {
     #[test]
     fn test_connection_with_jump_host() {
         let jump = JumpHost::new("jump.example.com", "jumpuser").with_port(2222);
-        let conn = SshConnection::new("Test", "target.com", "user")
-            .with_jump_host(jump);
+        let conn = SshConnection::new("Test", "target.com", "user").with_jump_host(jump);
 
         assert_eq!(conn.jump_hosts.len(), 1);
         assert_eq!(conn.jump_hosts[0].host, "jump.example.com");
@@ -242,8 +246,7 @@ mod tests {
 
     #[test]
     fn test_connection_with_idle_timeout() {
-        let conn = SshConnection::new("Test", "host.com", "user")
-            .with_idle_timeout(600);
+        let conn = SshConnection::new("Test", "host.com", "user").with_idle_timeout(600);
 
         assert_eq!(conn.idle_timeout_seconds, Some(600));
     }
@@ -283,8 +286,7 @@ mod tests {
 
     #[test]
     fn test_connection_serialization() {
-        let conn = SshConnection::new("Test", "host.com", "user")
-            .with_port(2222);
+        let conn = SshConnection::new("Test", "host.com", "user").with_port(2222);
 
         let json = serde_json::to_string(&conn).unwrap();
         assert!(json.contains("\"host\":\"host.com\""));

@@ -93,12 +93,9 @@ impl ConnectionTemplate {
 
     /// Built-in SOCKS proxy template
     pub fn socks_proxy() -> Self {
-        Self::new(
-            "SOCKS5 Proxy",
-            "Dynamic forwarding for SOCKS5 proxy",
-        )
-        .with_port(22)
-        .with_forwarding(ForwardingConfig::dynamic(2025))
+        Self::new("SOCKS5 Proxy", "Dynamic forwarding for SOCKS5 proxy")
+            .with_port(22)
+            .with_forwarding(ForwardingConfig::dynamic(2025))
     }
 
     /// Built-in web debug template

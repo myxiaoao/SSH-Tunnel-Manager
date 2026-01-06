@@ -1,15 +1,15 @@
-use gpui::*;
 use gpui::prelude::FluentBuilder;
-use gpui_component::*;
+use gpui::*;
+use gpui_component::ActiveTheme;
 use gpui_component::button::ButtonVariants;
 use gpui_component::input::{Input, InputEvent, InputState};
 use gpui_component::scroll::ScrollableElement;
-use gpui_component::ActiveTheme;
+use gpui_component::*;
 use rust_i18n::t;
 use std::sync::Arc;
 
-use ssh_tunnel_manager::state::{AppState, ErrorSeverity, ConnectionFormData};
 use ssh_tunnel_manager::models::auth::AuthMethod;
+use ssh_tunnel_manager::state::{AppState, ConnectionFormData, ErrorSeverity};
 
 /// Main application window with editable form inputs
 pub struct SshTunnelApp {
@@ -128,7 +128,8 @@ impl SshTunnelApp {
                     app_state.set_filter(text).await;
                 });
             }
-        }).detach();
+        })
+        .detach();
 
         // Subscribe to password input changes
         let app_state_clone = app_state.clone();
@@ -140,7 +141,8 @@ impl SshTunnelApp {
                     app_state.set_password_value(text).await;
                 });
             }
-        }).detach();
+        })
+        .detach();
 
         // Create input states for the connection form with placeholders
         let name_input = cx.new(|cx| {
@@ -199,7 +201,8 @@ impl SshTunnelApp {
                     app_state.update_form_field("name", text).await;
                 });
             }
-        }).detach();
+        })
+        .detach();
 
         // Subscribe to input changes for host field
         let app_state_clone = app_state.clone();
@@ -211,7 +214,8 @@ impl SshTunnelApp {
                     app_state.update_form_field("host", text).await;
                 });
             }
-        }).detach();
+        })
+        .detach();
 
         // Subscribe to input changes for port field
         let app_state_clone = app_state.clone();
@@ -223,7 +227,8 @@ impl SshTunnelApp {
                     app_state.update_form_field("port", text).await;
                 });
             }
-        }).detach();
+        })
+        .detach();
 
         // Subscribe to input changes for username field
         let app_state_clone = app_state.clone();
@@ -235,19 +240,24 @@ impl SshTunnelApp {
                     app_state.update_form_field("username", text).await;
                 });
             }
-        }).detach();
+        })
+        .detach();
 
         // Subscribe to input changes for private_key_path field
         let app_state_clone = app_state.clone();
-        cx.subscribe(&private_key_path_input, move |_, input, ev: &InputEvent, cx| {
-            if let InputEvent::Change = ev {
-                let text = input.read(cx).text().to_string();
-                let app_state = app_state_clone.clone();
-                tokio::spawn(async move {
-                    app_state.update_form_field("private_key_path", text).await;
-                });
-            }
-        }).detach();
+        cx.subscribe(
+            &private_key_path_input,
+            move |_, input, ev: &InputEvent, cx| {
+                if let InputEvent::Change = ev {
+                    let text = input.read(cx).text().to_string();
+                    let app_state = app_state_clone.clone();
+                    tokio::spawn(async move {
+                        app_state.update_form_field("private_key_path", text).await;
+                    });
+                }
+            },
+        )
+        .detach();
 
         // Subscribe to input changes for local_port field
         let app_state_clone = app_state.clone();
@@ -259,7 +269,8 @@ impl SshTunnelApp {
                     app_state.update_form_field("local_port", text).await;
                 });
             }
-        }).detach();
+        })
+        .detach();
 
         // Subscribe to input changes for remote_host field
         let app_state_clone = app_state.clone();
@@ -271,7 +282,8 @@ impl SshTunnelApp {
                     app_state.update_form_field("remote_host", text).await;
                 });
             }
-        }).detach();
+        })
+        .detach();
 
         // Subscribe to input changes for remote_port field
         let app_state_clone = app_state.clone();
@@ -283,7 +295,8 @@ impl SshTunnelApp {
                     app_state.update_form_field("remote_port", text).await;
                 });
             }
-        }).detach();
+        })
+        .detach();
 
         // Subscribe to input changes for bind_address field
         let app_state_clone = app_state.clone();
@@ -295,7 +308,8 @@ impl SshTunnelApp {
                     app_state.update_form_field("bind_address", text).await;
                 });
             }
-        }).detach();
+        })
+        .detach();
 
         Self {
             app_state,
@@ -334,22 +348,22 @@ impl SshTunnelApp {
                 h_flex()
                     .items_center()
                     .gap_2()
-                    .child(
-                        div()
-                            .text_sm()
-                            .child("🖥️")
-                    )
+                    .child(div().text_sm().child("🖥️"))
                     .child(
                         Label::new(t!("connection.host_info").to_string())
                             .text_size(rems(0.95))
-                            .text_color(text_color)
-                    )
+                            .text_color(text_color),
+                    ),
             )
             .child(
                 v_flex()
                     .gap_2()
-                    .child(Label::new(t!("connection.connection_name").to_string()).text_size(rems(0.85)).text_color(muted_color))
-                    .child(Input::new(&self.name_input).cleanable(true))
+                    .child(
+                        Label::new(t!("connection.connection_name").to_string())
+                            .text_size(rems(0.85))
+                            .text_color(muted_color),
+                    )
+                    .child(Input::new(&self.name_input).cleanable(true)),
             )
             .child(
                 h_flex()
@@ -358,22 +372,34 @@ impl SshTunnelApp {
                         v_flex()
                             .flex_1()
                             .gap_2()
-                            .child(Label::new(t!("connection.host_address").to_string()).text_size(rems(0.85)).text_color(muted_color))
-                            .child(Input::new(&self.host_input).cleanable(true))
+                            .child(
+                                Label::new(t!("connection.host_address").to_string())
+                                    .text_size(rems(0.85))
+                                    .text_color(muted_color),
+                            )
+                            .child(Input::new(&self.host_input).cleanable(true)),
                     )
                     .child(
                         v_flex()
                             .w(px(100.0))
                             .gap_2()
-                            .child(Label::new(t!("connection.port").to_string()).text_size(rems(0.85)).text_color(muted_color))
-                            .child(Input::new(&self.port_input).cleanable(true))
-                    )
+                            .child(
+                                Label::new(t!("connection.port").to_string())
+                                    .text_size(rems(0.85))
+                                    .text_color(muted_color),
+                            )
+                            .child(Input::new(&self.port_input).cleanable(true)),
+                    ),
             )
             .child(
                 v_flex()
                     .gap_2()
-                    .child(Label::new(t!("connection.username").to_string()).text_size(rems(0.85)).text_color(muted_color))
-                    .child(Input::new(&self.username_input).cleanable(true))
+                    .child(
+                        Label::new(t!("connection.username").to_string())
+                            .text_size(rems(0.85))
+                            .text_color(muted_color),
+                    )
+                    .child(Input::new(&self.username_input).cleanable(true)),
             )
     }
 
@@ -407,16 +433,12 @@ impl SshTunnelApp {
                 h_flex()
                     .items_center()
                     .gap_2()
-                    .child(
-                        div()
-                            .text_sm()
-                            .child("🔐")
-                    )
+                    .child(div().text_sm().child("🔐"))
                     .child(
                         Label::new(t!("connection.authentication").to_string())
                             .text_size(rems(0.95))
-                            .text_color(text_color)
-                    )
+                            .text_color(text_color),
+                    ),
             )
             .child(
                 h_flex()
@@ -429,12 +451,22 @@ impl SshTunnelApp {
                             .py_2()
                             .rounded_md()
                             .border_1()
-                            .border_color(if !is_publickey { primary_color } else { border_color })
-                            .bg(if !is_publickey { primary_color.opacity(0.08) } else { gpui::transparent_black() })
+                            .border_color(if !is_publickey {
+                                primary_color
+                            } else {
+                                border_color
+                            })
+                            .bg(if !is_publickey {
+                                primary_color.opacity(0.08)
+                            } else {
+                                gpui::transparent_black()
+                            })
                             .on_mouse_down(gpui::MouseButton::Left, move |_event, _window, _app| {
                                 let app_state = app_state.clone();
                                 tokio::spawn(async move {
-                                    app_state.update_form_field("auth_type", "password".to_string()).await;
+                                    app_state
+                                        .update_form_field("auth_type", "password".to_string())
+                                        .await;
                                 });
                             })
                             .child(
@@ -446,7 +478,11 @@ impl SshTunnelApp {
                                             .size(px(16.0))
                                             .rounded_full()
                                             .border_2()
-                                            .border_color(if !is_publickey { primary_color } else { border_color })
+                                            .border_color(if !is_publickey {
+                                                primary_color
+                                            } else {
+                                                border_color
+                                            })
                                             .flex()
                                             .items_center()
                                             .justify_center()
@@ -455,15 +491,19 @@ impl SshTunnelApp {
                                                     div()
                                                         .size(px(8.0))
                                                         .rounded_full()
-                                                        .bg(primary_color)
+                                                        .bg(primary_color),
                                                 )
-                                            })
+                                            }),
                                     )
                                     .child(
                                         Label::new(t!("connection.password").to_string())
                                             .text_size(rems(0.85))
-                                            .text_color(if !is_publickey { text_color } else { muted_color })
-                                    )
+                                            .text_color(if !is_publickey {
+                                                text_color
+                                            } else {
+                                                muted_color
+                                            }),
+                                    ),
                             )
                     })
                     .child({
@@ -474,12 +514,22 @@ impl SshTunnelApp {
                             .py_2()
                             .rounded_md()
                             .border_1()
-                            .border_color(if is_publickey { primary_color } else { border_color })
-                            .bg(if is_publickey { primary_color.opacity(0.08) } else { gpui::transparent_black() })
+                            .border_color(if is_publickey {
+                                primary_color
+                            } else {
+                                border_color
+                            })
+                            .bg(if is_publickey {
+                                primary_color.opacity(0.08)
+                            } else {
+                                gpui::transparent_black()
+                            })
                             .on_mouse_down(gpui::MouseButton::Left, move |_event, _window, _app| {
                                 let app_state = app_state.clone();
                                 tokio::spawn(async move {
-                                    app_state.update_form_field("auth_type", "publickey".to_string()).await;
+                                    app_state
+                                        .update_form_field("auth_type", "publickey".to_string())
+                                        .await;
                                 });
                             })
                             .child(
@@ -491,7 +541,11 @@ impl SshTunnelApp {
                                             .size(px(16.0))
                                             .rounded_full()
                                             .border_2()
-                                            .border_color(if is_publickey { primary_color } else { border_color })
+                                            .border_color(if is_publickey {
+                                                primary_color
+                                            } else {
+                                                border_color
+                                            })
                                             .flex()
                                             .items_center()
                                             .justify_center()
@@ -500,35 +554,39 @@ impl SshTunnelApp {
                                                     div()
                                                         .size(px(8.0))
                                                         .rounded_full()
-                                                        .bg(primary_color)
+                                                        .bg(primary_color),
                                                 )
-                                            })
+                                            }),
                                     )
                                     .child(
                                         Label::new(t!("connection.public_key").to_string())
                                             .text_size(rems(0.85))
-                                            .text_color(if is_publickey { text_color } else { muted_color })
-                                    )
+                                            .text_color(if is_publickey {
+                                                text_color
+                                            } else {
+                                                muted_color
+                                            }),
+                                    ),
                             )
-                    })
+                    }),
             )
-            .child(
-                if is_publickey {
-                    v_flex()
-                        .gap_1()
-                        .child(Label::new(t!("connection.private_key_path").to_string()).text_size(rems(0.85)).text_color(muted_color))
-                        .child(Input::new(&self.private_key_path_input).cleanable(true))
-                } else {
-                    v_flex()
-                        .gap_1()
-                        .child(
-                            div()
-                                .text_sm()
-                                .text_color(muted_color)
-                                .child(t!("connection.password_hint").to_string())
-                        )
-                }
-            )
+            .child(if is_publickey {
+                v_flex()
+                    .gap_1()
+                    .child(
+                        Label::new(t!("connection.private_key_path").to_string())
+                            .text_size(rems(0.85))
+                            .text_color(muted_color),
+                    )
+                    .child(Input::new(&self.private_key_path_input).cleanable(true))
+            } else {
+                v_flex().gap_1().child(
+                    div()
+                        .text_sm()
+                        .text_color(muted_color)
+                        .child(t!("connection.password_hint").to_string()),
+                )
+            })
     }
 
     /// Render tunnel mode section
@@ -559,39 +617,64 @@ impl SshTunnelApp {
                 h_flex()
                     .items_center()
                     .gap_2()
-                    .child(
-                        div()
-                            .text_sm()
-                            .child("🔀")
-                    )
+                    .child(div().text_sm().child("🔀"))
                     .child(
                         Label::new(t!("connection.tunnel_mode").to_string())
                             .text_size(rems(0.95))
-                            .text_color(text_color)
-                    )
+                            .text_color(text_color),
+                    ),
             )
             .child(
                 h_flex()
                     .gap_2()
-                    .child(self.render_mode_radio(&format!("{} (-L)", t!("forwarding.local")), form_data.forwarding_type == "local", "local", card_bg, border_color, text_color, primary_color))
-                    .child(self.render_mode_radio(&format!("{} (-R)", t!("forwarding.remote")), form_data.forwarding_type == "remote", "remote", card_bg, border_color, text_color, primary_color))
-                    .child(self.render_mode_radio(&format!("{} (-D)", t!("forwarding.dynamic")), form_data.forwarding_type == "dynamic", "dynamic", card_bg, border_color, text_color, primary_color))
+                    .child(self.render_mode_radio(
+                        &format!("{} (-L)", t!("forwarding.local")),
+                        form_data.forwarding_type == "local",
+                        "local",
+                        card_bg,
+                        border_color,
+                        text_color,
+                        primary_color,
+                    ))
+                    .child(self.render_mode_radio(
+                        &format!("{} (-R)", t!("forwarding.remote")),
+                        form_data.forwarding_type == "remote",
+                        "remote",
+                        card_bg,
+                        border_color,
+                        text_color,
+                        primary_color,
+                    ))
+                    .child(self.render_mode_radio(
+                        &format!("{} (-D)", t!("forwarding.dynamic")),
+                        form_data.forwarding_type == "dynamic",
+                        "dynamic",
+                        card_bg,
+                        border_color,
+                        text_color,
+                        primary_color,
+                    )),
             )
-            .child(
-                div()
-                    .mt_2()
-                    .text_sm()
-                    .text_color(muted_color)
-                    .child(match form_data.forwarding_type.as_str() {
-                        "local" => format!("📥 {}", t!("connection.local_mode_hint")),
-                        "remote" => format!("📤 {}", t!("connection.remote_mode_hint")),
-                        "dynamic" => format!("🌐 {}", t!("connection.dynamic_mode_hint")),
-                        _ => String::new()
-                    })
-            )
+            .child(div().mt_2().text_sm().text_color(muted_color).child(
+                match form_data.forwarding_type.as_str() {
+                    "local" => format!("📥 {}", t!("connection.local_mode_hint")),
+                    "remote" => format!("📤 {}", t!("connection.remote_mode_hint")),
+                    "dynamic" => format!("🌐 {}", t!("connection.dynamic_mode_hint")),
+                    _ => String::new(),
+                },
+            ))
     }
 
-    fn render_mode_radio(&self, label: &str, selected: bool, mode: &str, _card_bg: Hsla, border_color: Hsla, text_color: Hsla, primary_color: Hsla) -> impl IntoElement {
+    fn render_mode_radio(
+        &self,
+        label: &str,
+        selected: bool,
+        mode: &str,
+        _card_bg: Hsla,
+        border_color: Hsla,
+        text_color: Hsla,
+        primary_color: Hsla,
+    ) -> impl IntoElement {
         let app_state = self.app_state.clone();
         let mode = mode.to_string();
         let muted_color = gpui::hsla(0.0, 0.0, 0.45, 1.0);
@@ -603,8 +686,16 @@ impl SshTunnelApp {
             .py_2()
             .rounded_md()
             .border_1()
-            .border_color(if selected { primary_color } else { border_color })
-            .bg(if selected { primary_color.opacity(0.08) } else { gpui::transparent_black() })
+            .border_color(if selected {
+                primary_color
+            } else {
+                border_color
+            })
+            .bg(if selected {
+                primary_color.opacity(0.08)
+            } else {
+                gpui::transparent_black()
+            })
             .on_mouse_down(gpui::MouseButton::Left, move |_event, _window, _app| {
                 let app_state = app_state.clone();
                 let mode = mode.clone();
@@ -622,25 +713,24 @@ impl SshTunnelApp {
                             .size(px(14.0))
                             .rounded_full()
                             .border_2()
-                            .border_color(if selected { primary_color } else { border_color })
+                            .border_color(if selected {
+                                primary_color
+                            } else {
+                                border_color
+                            })
                             .flex()
                             .items_center()
                             .justify_center()
                             .when(selected, |this| {
-                                this.child(
-                                    div()
-                                        .size(px(6.0))
-                                        .rounded_full()
-                                        .bg(primary_color)
-                                )
-                            })
+                                this.child(div().size(px(6.0)).rounded_full().bg(primary_color))
+                            }),
                     )
                     .child(
                         div()
                             .text_sm()
                             .text_color(if selected { text_color } else { muted_color })
-                            .child(label.to_string())
-                    )
+                            .child(label.to_string()),
+                    ),
             )
     }
 
@@ -674,16 +764,12 @@ impl SshTunnelApp {
                 h_flex()
                     .items_center()
                     .gap_2()
-                    .child(
-                        div()
-                            .text_sm()
-                            .child("📡")
-                    )
+                    .child(div().text_sm().child("📡"))
                     .child(
                         Label::new(t!("connection.port_forwarding").to_string())
                             .text_size(rems(0.95))
-                            .text_color(text_color)
-                    )
+                            .text_color(text_color),
+                    ),
             )
             .child(
                 v_flex()
@@ -693,9 +779,13 @@ impl SshTunnelApp {
                         v_flex()
                             .gap_2()
                             .child(
-                                Label::new(if is_dynamic { t!("connection.socks_proxy_settings").to_string() } else { t!("connection.local_binding").to_string() })
-                                    .text_size(rems(0.85))
-                                    .text_color(muted_color)
+                                Label::new(if is_dynamic {
+                                    t!("connection.socks_proxy_settings").to_string()
+                                } else {
+                                    t!("connection.local_binding").to_string()
+                                })
+                                .text_size(rems(0.85))
+                                .text_color(muted_color),
                             )
                             .child(
                                 h_flex()
@@ -704,34 +794,45 @@ impl SshTunnelApp {
                                         v_flex()
                                             .flex_1()
                                             .gap_1()
-                                            .child(Label::new(t!("forwarding.bind_address").to_string()).text_size(rems(0.8)).text_color(muted_color))
-                                            .child(Input::new(&self.bind_address_input).cleanable(true))
+                                            .child(
+                                                Label::new(
+                                                    t!("forwarding.bind_address").to_string(),
+                                                )
+                                                .text_size(rems(0.8))
+                                                .text_color(muted_color),
+                                            )
+                                            .child(
+                                                Input::new(&self.bind_address_input)
+                                                    .cleanable(true),
+                                            ),
                                     )
                                     .child(
                                         v_flex()
                                             .w(px(120.0))
                                             .gap_1()
-                                            .child(Label::new(t!("connection.port").to_string()).text_size(rems(0.8)).text_color(muted_color))
-                                            .child(Input::new(&self.local_port_input).cleanable(true))
-                                    )
-                            )
+                                            .child(
+                                                Label::new(t!("connection.port").to_string())
+                                                    .text_size(rems(0.8))
+                                                    .text_color(muted_color),
+                                            )
+                                            .child(
+                                                Input::new(&self.local_port_input).cleanable(true),
+                                            ),
+                                    ),
+                            ),
                     )
                     // Remote destination (only for Local and Remote modes)
                     .when(!is_dynamic, |this| {
                         this.child(
                             v_flex()
                                 .gap_2()
-                                .child(
-                                    h_flex()
-                                        .items_center()
-                                        .justify_center()
-                                        .child(
-                                            div()
-                                                .text_sm()
-                                                .text_color(muted_color)
-                                                .child(if is_remote { format!("⬆️ {}", t!("connection.to_remote")) } else { format!("⬇️ {}", t!("connection.from_remote")) })
-                                        )
-                                )
+                                .child(h_flex().items_center().justify_center().child(
+                                    div().text_sm().text_color(muted_color).child(if is_remote {
+                                        format!("⬆️ {}", t!("connection.to_remote"))
+                                    } else {
+                                        format!("⬇️ {}", t!("connection.from_remote"))
+                                    }),
+                                ))
                                 .child(
                                     h_flex()
                                         .gap_3()
@@ -739,17 +840,35 @@ impl SshTunnelApp {
                                             v_flex()
                                                 .flex_1()
                                                 .gap_1()
-                                                .child(Label::new(if is_remote { t!("connection.local_host").to_string() } else { t!("forwarding.remote_host").to_string() }).text_size(rems(0.8)).text_color(muted_color))
-                                                .child(Input::new(&self.remote_host_input).cleanable(true))
+                                                .child(
+                                                    Label::new(if is_remote {
+                                                        t!("connection.local_host").to_string()
+                                                    } else {
+                                                        t!("forwarding.remote_host").to_string()
+                                                    })
+                                                    .text_size(rems(0.8))
+                                                    .text_color(muted_color),
+                                                )
+                                                .child(
+                                                    Input::new(&self.remote_host_input)
+                                                        .cleanable(true),
+                                                ),
                                         )
                                         .child(
                                             v_flex()
                                                 .w(px(120.0))
                                                 .gap_1()
-                                                .child(Label::new(t!("connection.port").to_string()).text_size(rems(0.8)).text_color(muted_color))
-                                                .child(Input::new(&self.remote_port_input).cleanable(true))
-                                        )
-                                )
+                                                .child(
+                                                    Label::new(t!("connection.port").to_string())
+                                                        .text_size(rems(0.8))
+                                                        .text_color(muted_color),
+                                                )
+                                                .child(
+                                                    Input::new(&self.remote_port_input)
+                                                        .cleanable(true),
+                                                ),
+                                        ),
+                                ),
                         )
                     })
                     // Dynamic mode info
@@ -758,9 +877,9 @@ impl SshTunnelApp {
                             div()
                                 .text_sm()
                                 .text_color(muted_color)
-                                .child(t!("connection.socks5_hint").to_string())
+                                .child(t!("connection.socks5_hint").to_string()),
                         )
-                    })
+                    }),
             )
     }
 
@@ -774,11 +893,14 @@ impl SshTunnelApp {
         let text_color = theme.foreground;
         let muted_color = theme.muted_foreground;
         let muted_bg = theme.muted;
-        let success_color = gpui::hsla(142.0 / 360.0, 0.71, 0.45, 1.0);  // Green #22c55e as Hsla
+        let success_color = gpui::hsla(142.0 / 360.0, 0.71, 0.45, 1.0); // Green #22c55e as Hsla
 
         // Get current form data
         let (compression, quiet_mode) = if let Ok(ui_state) = self.app_state.ui_state.try_read() {
-            (ui_state.form_data.compression, ui_state.form_data.quiet_mode)
+            (
+                ui_state.form_data.compression,
+                ui_state.form_data.quiet_mode,
+            )
         } else {
             (true, false)
         };
@@ -797,16 +919,12 @@ impl SshTunnelApp {
                 h_flex()
                     .items_center()
                     .gap_2()
-                    .child(
-                        div()
-                            .text_sm()
-                            .child("⚙️")
-                    )
+                    .child(div().text_sm().child("⚙️"))
                     .child(
                         Label::new(t!("connection.advanced_options").to_string())
                             .text_size(rems(0.95))
-                            .text_color(text_color)
-                    )
+                            .text_color(text_color),
+                    ),
             )
             .child(
                 h_flex()
@@ -822,14 +940,22 @@ impl SshTunnelApp {
                                     .cursor_pointer()
                                     .px_3()
                                     .py_2()
-                                    .bg(if compression { success_color.opacity(0.1) } else { muted_bg })
+                                    .bg(if compression {
+                                        success_color.opacity(0.1)
+                                    } else {
+                                        muted_bg
+                                    })
                                     .rounded_md()
                                     .child(
                                         div()
                                             .size(px(16.0))
                                             .rounded_sm()
                                             .border_1()
-                                            .border_color(if compression { success_color } else { border_color })
+                                            .border_color(if compression {
+                                                success_color
+                                            } else {
+                                                border_color
+                                            })
                                             .bg(if compression { success_color } else { card_bg })
                                             .flex()
                                             .items_center()
@@ -839,20 +965,29 @@ impl SshTunnelApp {
                                                     div()
                                                         .text_xs()
                                                         .text_color(gpui::hsla(0.0, 0.0, 1.0, 1.0))
-                                                        .child("✓")
+                                                        .child("✓"),
                                                 )
-                                            })
+                                            }),
                                     )
-                                    .child(Label::new(t!("connection.compression").to_string())
-                                        .text_size(rems(0.85))
-                                        .text_color(if compression { text_color } else { muted_color }))
+                                    .child(
+                                        Label::new(t!("connection.compression").to_string())
+                                            .text_size(rems(0.85))
+                                            .text_color(if compression {
+                                                text_color
+                                            } else {
+                                                muted_color
+                                            }),
+                                    ),
                             )
-                            .on_mouse_down(gpui::MouseButton::Left, move |_event, _window, _app| {
-                                let app_state = app_state_compression.clone();
-                                tokio::spawn(async move {
-                                    app_state.toggle_compression().await;
-                                });
-                            })
+                            .on_mouse_down(
+                                gpui::MouseButton::Left,
+                                move |_event, _window, _app| {
+                                    let app_state = app_state_compression.clone();
+                                    tokio::spawn(async move {
+                                        app_state.toggle_compression().await;
+                                    });
+                                },
+                            ),
                     )
                     // Quiet Mode checkbox
                     .child(
@@ -865,14 +1000,22 @@ impl SshTunnelApp {
                                     .cursor_pointer()
                                     .px_3()
                                     .py_2()
-                                    .bg(if quiet_mode { success_color.opacity(0.1) } else { muted_bg })
+                                    .bg(if quiet_mode {
+                                        success_color.opacity(0.1)
+                                    } else {
+                                        muted_bg
+                                    })
                                     .rounded_md()
                                     .child(
                                         div()
                                             .size(px(16.0))
                                             .rounded_sm()
                                             .border_1()
-                                            .border_color(if quiet_mode { success_color } else { border_color })
+                                            .border_color(if quiet_mode {
+                                                success_color
+                                            } else {
+                                                border_color
+                                            })
                                             .bg(if quiet_mode { success_color } else { card_bg })
                                             .flex()
                                             .items_center()
@@ -882,21 +1025,30 @@ impl SshTunnelApp {
                                                     div()
                                                         .text_xs()
                                                         .text_color(gpui::hsla(0.0, 0.0, 1.0, 1.0))
-                                                        .child("✓")
+                                                        .child("✓"),
                                                 )
-                                            })
+                                            }),
                                     )
-                                    .child(Label::new(t!("connection.quiet_mode").to_string())
-                                        .text_size(rems(0.85))
-                                        .text_color(if quiet_mode { text_color } else { muted_color }))
+                                    .child(
+                                        Label::new(t!("connection.quiet_mode").to_string())
+                                            .text_size(rems(0.85))
+                                            .text_color(if quiet_mode {
+                                                text_color
+                                            } else {
+                                                muted_color
+                                            }),
+                                    ),
                             )
-                            .on_mouse_down(gpui::MouseButton::Left, move |_event, _window, _app| {
-                                let app_state = app_state_quiet.clone();
-                                tokio::spawn(async move {
-                                    app_state.toggle_quiet_mode().await;
-                                });
-                            })
-                    )
+                            .on_mouse_down(
+                                gpui::MouseButton::Left,
+                                move |_event, _window, _app| {
+                                    let app_state = app_state_quiet.clone();
+                                    tokio::spawn(async move {
+                                        app_state.toggle_quiet_mode().await;
+                                    });
+                                },
+                            ),
+                    ),
             )
     }
 
@@ -912,12 +1064,36 @@ impl SshTunnelApp {
         let muted_color = theme.muted_foreground;
 
         let templates = vec![
-            ("mysql", t!("template.mysql_name").to_string(), t!("template.mysql_desc").to_string()),
-            ("postgresql", t!("template.postgresql_name").to_string(), t!("template.postgresql_desc").to_string()),
-            ("web", t!("template.web_name").to_string(), t!("template.web_desc").to_string()),
-            ("socks5", t!("template.socks5_name").to_string(), t!("template.socks5_desc").to_string()),
-            ("rdp", t!("template.rdp_name").to_string(), t!("template.rdp_desc").to_string()),
-            ("remote", t!("template.remote_name").to_string(), t!("template.remote_desc").to_string()),
+            (
+                "mysql",
+                t!("template.mysql_name").to_string(),
+                t!("template.mysql_desc").to_string(),
+            ),
+            (
+                "postgresql",
+                t!("template.postgresql_name").to_string(),
+                t!("template.postgresql_desc").to_string(),
+            ),
+            (
+                "web",
+                t!("template.web_name").to_string(),
+                t!("template.web_desc").to_string(),
+            ),
+            (
+                "socks5",
+                t!("template.socks5_name").to_string(),
+                t!("template.socks5_desc").to_string(),
+            ),
+            (
+                "rdp",
+                t!("template.rdp_name").to_string(),
+                t!("template.rdp_desc").to_string(),
+            ),
+            (
+                "remote",
+                t!("template.remote_name").to_string(),
+                t!("template.remote_desc").to_string(),
+            ),
         ];
 
         v_flex()
@@ -934,7 +1110,7 @@ impl SshTunnelApp {
                     .child(
                         Label::new(t!("app.quick_templates").to_string())
                             .text_size(rems(0.95))
-                            .text_color(text_color)
+                            .text_color(text_color),
                     )
                     .child({
                         let app_state = self.app_state.clone();
@@ -952,52 +1128,45 @@ impl SshTunnelApp {
                                 });
                             })
                             .child(t!("app.close").to_string())
-                    })
+                    }),
             )
             .child(
                 h_flex()
                     .gap_2()
                     .flex_wrap()
-                    .children(
-                        templates.into_iter().map(|(id, name, desc)| {
-                            let app_state = self.app_state.clone();
-                            let template_id = id.to_string();
+                    .children(templates.into_iter().map(|(id, name, desc)| {
+                        let app_state = self.app_state.clone();
+                        let template_id = id.to_string();
 
-                            div()
-                                .cursor_pointer()
-                                .px_3()
-                                .py_2()
-                                .bg(card_bg)
-                                .border_1()
-                                .border_color(border_color)
-                                .rounded_lg()
-                                .on_mouse_down(gpui::MouseButton::Left, move |_, _, _| {
-                                    let app_state = app_state.clone();
-                                    let template_id = template_id.clone();
-                                    tokio::spawn(async move {
-                                        app_state.load_template(&template_id).await;
-                                        app_state.toggle_templates().await;
-                                    });
-                                })
-                                .child(
-                                    v_flex()
-                                        .gap_0p5()
-                                        .child(
-                                            div()
-                                                .text_sm()
-                                                .font_weight(FontWeight::MEDIUM)
-                                                .text_color(text_color)
-                                                .child(name)
-                                        )
-                                        .child(
-                                            div()
-                                                .text_xs()
-                                                .text_color(muted_color)
-                                                .child(desc)
-                                        )
-                                )
-                        })
-                    )
+                        div()
+                            .cursor_pointer()
+                            .px_3()
+                            .py_2()
+                            .bg(card_bg)
+                            .border_1()
+                            .border_color(border_color)
+                            .rounded_lg()
+                            .on_mouse_down(gpui::MouseButton::Left, move |_, _, _| {
+                                let app_state = app_state.clone();
+                                let template_id = template_id.clone();
+                                tokio::spawn(async move {
+                                    app_state.load_template(&template_id).await;
+                                    app_state.toggle_templates().await;
+                                });
+                            })
+                            .child(
+                                v_flex()
+                                    .gap_0p5()
+                                    .child(
+                                        div()
+                                            .text_sm()
+                                            .font_weight(FontWeight::MEDIUM)
+                                            .text_color(text_color)
+                                            .child(name),
+                                    )
+                                    .child(div().text_xs().text_color(muted_color).child(desc)),
+                            )
+                    })),
             )
     }
 
@@ -1046,21 +1215,53 @@ impl SshTunnelApp {
         let is_dark = theme.mode.is_dark();
 
         // Define semantic colors based on theme
-        let error_bg = if is_dark { gpui::hsla(0.0, 0.40, 0.20, 1.0) } else { gpui::hsla(0.0, 0.86, 0.94, 1.0) };
+        let error_bg = if is_dark {
+            gpui::hsla(0.0, 0.40, 0.20, 1.0)
+        } else {
+            gpui::hsla(0.0, 0.86, 0.94, 1.0)
+        };
         let error_border = gpui::hsla(0.0, 0.84, 0.60, 1.0);
-        let error_text = if is_dark { gpui::hsla(0.0, 0.75, 0.80, 1.0) } else { gpui::hsla(0.0, 0.70, 0.35, 1.0) };
+        let error_text = if is_dark {
+            gpui::hsla(0.0, 0.75, 0.80, 1.0)
+        } else {
+            gpui::hsla(0.0, 0.70, 0.35, 1.0)
+        };
 
-        let warning_bg = if is_dark { gpui::hsla(38.0 / 360.0, 0.40, 0.20, 1.0) } else { gpui::hsla(45.0 / 360.0, 0.93, 0.89, 1.0) };
+        let warning_bg = if is_dark {
+            gpui::hsla(38.0 / 360.0, 0.40, 0.20, 1.0)
+        } else {
+            gpui::hsla(45.0 / 360.0, 0.93, 0.89, 1.0)
+        };
         let warning_border = gpui::hsla(38.0 / 360.0, 0.92, 0.50, 1.0);
-        let warning_text = if is_dark { gpui::hsla(38.0 / 360.0, 0.80, 0.70, 1.0) } else { gpui::hsla(28.0 / 360.0, 0.80, 0.31, 1.0) };
+        let warning_text = if is_dark {
+            gpui::hsla(38.0 / 360.0, 0.80, 0.70, 1.0)
+        } else {
+            gpui::hsla(28.0 / 360.0, 0.80, 0.31, 1.0)
+        };
 
-        let info_bg = if is_dark { gpui::hsla(217.0 / 360.0, 0.40, 0.20, 1.0) } else { gpui::hsla(214.0 / 360.0, 0.95, 0.93, 1.0) };
+        let info_bg = if is_dark {
+            gpui::hsla(217.0 / 360.0, 0.40, 0.20, 1.0)
+        } else {
+            gpui::hsla(214.0 / 360.0, 0.95, 0.93, 1.0)
+        };
         let info_border = gpui::hsla(217.0 / 360.0, 0.91, 0.60, 1.0);
-        let info_text = if is_dark { gpui::hsla(217.0 / 360.0, 0.80, 0.75, 1.0) } else { gpui::hsla(224.0 / 360.0, 0.76, 0.40, 1.0) };
+        let info_text = if is_dark {
+            gpui::hsla(217.0 / 360.0, 0.80, 0.75, 1.0)
+        } else {
+            gpui::hsla(224.0 / 360.0, 0.76, 0.40, 1.0)
+        };
 
-        let success_bg = if is_dark { gpui::hsla(152.0 / 360.0, 0.40, 0.15, 1.0) } else { gpui::hsla(149.0 / 360.0, 0.80, 0.90, 1.0) };
+        let success_bg = if is_dark {
+            gpui::hsla(152.0 / 360.0, 0.40, 0.15, 1.0)
+        } else {
+            gpui::hsla(149.0 / 360.0, 0.80, 0.90, 1.0)
+        };
         let success_border = gpui::hsla(160.0 / 360.0, 0.84, 0.39, 1.0);
-        let success_text = if is_dark { gpui::hsla(152.0 / 360.0, 0.70, 0.70, 1.0) } else { gpui::hsla(160.0 / 360.0, 0.84, 0.20, 1.0) };
+        let success_text = if is_dark {
+            gpui::hsla(152.0 / 360.0, 0.70, 0.70, 1.0)
+        } else {
+            gpui::hsla(160.0 / 360.0, 0.84, 0.20, 1.0)
+        };
 
         if let Some(error) = &ui_state.error_message {
             let (bg_color, border_color, text_color, icon) = match error.severity {
@@ -1085,30 +1286,26 @@ impl SshTunnelApp {
                                 h_flex()
                                     .gap_2()
                                     .items_center()
-                                    .child(
-                                        div()
-                                            .text_sm()
-                                            .child(icon)
-                                    )
+                                    .child(div().text_sm().child(icon))
                                     .child(
                                         div()
                                             .text_sm()
                                             .text_color(text_color)
-                                            .child(error.message.clone())
-                                    )
+                                            .child(error.message.clone()),
+                                    ),
                             )
                             .child({
                                 use button::Button;
-                                Button::new("close_error")
-                                    .label("×".to_string())
-                                    .on_click(move |_, _, _| {
+                                Button::new("close_error").label("×".to_string()).on_click(
+                                    move |_, _, _| {
                                         let app_state = app_state.clone();
                                         tokio::spawn(async move {
                                             app_state.clear_notifications().await;
                                         });
-                                    })
-                            })
-                    )
+                                    },
+                                )
+                            }),
+                    ),
             )
         } else if let Some(success) = &ui_state.success_message {
             Some(
@@ -1127,17 +1324,13 @@ impl SshTunnelApp {
                                 h_flex()
                                     .gap_2()
                                     .items_center()
-                                    .child(
-                                        div()
-                                            .text_sm()
-                                            .child("✅")
-                                    )
+                                    .child(div().text_sm().child("✅"))
                                     .child(
                                         div()
                                             .text_sm()
                                             .text_color(success_text)
-                                            .child(success.clone())
-                                    )
+                                            .child(success.clone()),
+                                    ),
                             )
                             .child({
                                 use button::Button;
@@ -1149,8 +1342,8 @@ impl SshTunnelApp {
                                             app_state.clear_notifications().await;
                                         });
                                     })
-                            })
-                    )
+                            }),
+                    ),
             )
         } else {
             None
@@ -1158,8 +1351,8 @@ impl SshTunnelApp {
     }
 
     fn render_header(&self, cx: &mut Context<Self>) -> Div {
-        use label::Label;
         use button::Button;
+        use label::Label;
 
         let theme = cx.theme();
         let header_bg = theme.sidebar;
@@ -1186,16 +1379,12 @@ impl SshTunnelApp {
                 h_flex()
                     .items_center()
                     .gap_3()
-                    .child(
-                        div()
-                            .text_lg()
-                            .child("🔐")
-                    )
+                    .child(div().text_lg().child("🔐"))
                     .child(
                         Label::new(t!("app.title").to_string())
                             .text_size(rems(1.1))
-                            .text_color(title_color)
-                    )
+                            .text_color(title_color),
+                    ),
             )
             .child(
                 h_flex()
@@ -1206,7 +1395,11 @@ impl SshTunnelApp {
                         Button::new("lang-toggle")
                             .small()
                             .ghost()
-                            .label(if language == "zh-CN" { "Switch to English" } else { "切换为简体中文" })
+                            .label(if language == "zh-CN" {
+                                "Switch to English"
+                            } else {
+                                "切换为简体中文"
+                            })
                             .on_click(move |_, window, _cx| {
                                 // Toggle language synchronously
                                 if let Ok(mut ui_state) = app_state.ui_state.try_write() {
@@ -1219,7 +1412,7 @@ impl SshTunnelApp {
                                 }
                                 // Refresh the window to update all text
                                 window.refresh();
-                            })
+                            }),
                     )
                     // Theme toggle button
                     .child(
@@ -1229,34 +1422,34 @@ impl SshTunnelApp {
                             .label(if dark_mode { "☀️" } else { "🌙" })
                             .on_click(move |_, window, cx| {
                                 // Toggle dark mode synchronously using try_write
-                                let is_dark = if let Ok(mut ui_state) = app_state2.ui_state.try_write() {
-                                    ui_state.dark_mode = !ui_state.dark_mode;
-                                    ui_state.dark_mode
-                                } else {
-                                    return;
-                                };
+                                let is_dark =
+                                    if let Ok(mut ui_state) = app_state2.ui_state.try_write() {
+                                        ui_state.dark_mode = !ui_state.dark_mode;
+                                        ui_state.dark_mode
+                                    } else {
+                                        return;
+                                    };
                                 // Update theme
                                 use gpui_component::theme::{Theme, ThemeMode};
                                 Theme::change(
-                                    if is_dark { ThemeMode::Dark } else { ThemeMode::Light },
+                                    if is_dark {
+                                        ThemeMode::Dark
+                                    } else {
+                                        ThemeMode::Light
+                                    },
                                     Some(window),
-                                    cx
+                                    cx,
                                 );
-                            })
+                            }),
                     )
-                    .child(
-                        div()
-                            .text_xs()
-                            .text_color(muted_color)
-                            .child("v1.0.0")
-                    )
+                    .child(div().text_xs().text_color(muted_color).child("v1.0.0")),
             )
     }
 
     /// Render active sessions panel (collapsible)
     fn render_sessions_panel(&self, cx: &mut Context<Self>) -> Div {
-        use label::Label;
         use button::Button;
+        use label::Label;
 
         // Get theme colors
         let theme = cx.theme();
@@ -1267,10 +1460,22 @@ impl SshTunnelApp {
         let muted_color = theme.muted_foreground;
 
         // Session panel colors
-        let session_bg = if is_dark { gpui::hsla(142.0 / 360.0, 0.30, 0.12, 1.0) } else { gpui::hsla(142.0 / 360.0, 0.76, 0.97, 1.0) };
-        let session_border = if is_dark { gpui::hsla(142.0 / 360.0, 0.50, 0.25, 1.0) } else { gpui::hsla(149.0 / 360.0, 0.80, 0.90, 1.0) };
+        let session_bg = if is_dark {
+            gpui::hsla(142.0 / 360.0, 0.30, 0.12, 1.0)
+        } else {
+            gpui::hsla(142.0 / 360.0, 0.76, 0.97, 1.0)
+        };
+        let session_border = if is_dark {
+            gpui::hsla(142.0 / 360.0, 0.50, 0.25, 1.0)
+        } else {
+            gpui::hsla(149.0 / 360.0, 0.80, 0.90, 1.0)
+        };
         let success_color = gpui::hsla(142.0 / 360.0, 0.71, 0.45, 1.0);
-        let session_title_color = if is_dark { gpui::hsla(142.0 / 360.0, 0.70, 0.70, 1.0) } else { gpui::hsla(144.0 / 360.0, 0.75, 0.20, 1.0) };
+        let session_title_color = if is_dark {
+            gpui::hsla(142.0 / 360.0, 0.70, 0.70, 1.0)
+        } else {
+            gpui::hsla(144.0 / 360.0, 0.75, 0.20, 1.0)
+        };
 
         // Read sessions from app state
         let sessions = if let Ok(sess) = self.app_state.sessions.try_read() {
@@ -1386,8 +1591,8 @@ impl SshTunnelApp {
 
     /// Render left panel with connection list (sidebar)
     fn render_left_panel(&self, cx: &mut Context<Self>) -> Div {
-        use label::Label;
         use button::Button;
+        use label::Label;
 
         // Get theme colors
         let theme = cx.theme();
@@ -1399,17 +1604,53 @@ impl SshTunnelApp {
         let card_bg = theme.background;
 
         // Semantic colors for connection states
-        let connected_bg = if is_dark { gpui::hsla(142.0 / 360.0, 0.40, 0.15, 1.0) } else { gpui::hsla(145.0 / 360.0, 0.80, 0.96, 1.0) };
+        let connected_bg = if is_dark {
+            gpui::hsla(142.0 / 360.0, 0.40, 0.15, 1.0)
+        } else {
+            gpui::hsla(145.0 / 360.0, 0.80, 0.96, 1.0)
+        };
         let connected_border = gpui::hsla(142.0 / 360.0, 0.71, 0.45, 1.0);
-        let connected_text = if is_dark { gpui::hsla(142.0 / 360.0, 0.70, 0.70, 1.0) } else { gpui::hsla(144.0 / 360.0, 0.75, 0.20, 1.0) };
-        let selected_bg = if is_dark { gpui::hsla(217.0 / 360.0, 0.40, 0.20, 1.0) } else { gpui::hsla(219.0 / 360.0, 1.0, 0.95, 1.0) };
-        let selected_border = if is_dark { gpui::hsla(217.0 / 360.0, 0.70, 0.50, 1.0) } else { gpui::hsla(217.0 / 360.0, 0.91, 0.78, 1.0) };
-        let selected_text = if is_dark { gpui::hsla(217.0 / 360.0, 0.80, 0.75, 1.0) } else { gpui::hsla(224.0 / 360.0, 0.76, 0.40, 1.0) };
+        let connected_text = if is_dark {
+            gpui::hsla(142.0 / 360.0, 0.70, 0.70, 1.0)
+        } else {
+            gpui::hsla(144.0 / 360.0, 0.75, 0.20, 1.0)
+        };
+        let selected_bg = if is_dark {
+            gpui::hsla(217.0 / 360.0, 0.40, 0.20, 1.0)
+        } else {
+            gpui::hsla(219.0 / 360.0, 1.0, 0.95, 1.0)
+        };
+        let selected_border = if is_dark {
+            gpui::hsla(217.0 / 360.0, 0.70, 0.50, 1.0)
+        } else {
+            gpui::hsla(217.0 / 360.0, 0.91, 0.78, 1.0)
+        };
+        let selected_text = if is_dark {
+            gpui::hsla(217.0 / 360.0, 0.80, 0.75, 1.0)
+        } else {
+            gpui::hsla(224.0 / 360.0, 0.76, 0.40, 1.0)
+        };
         let success_color = gpui::hsla(142.0 / 360.0, 0.71, 0.45, 1.0);
-        let inactive_dot = if is_dark { gpui::hsla(0.0, 0.0, 0.40, 1.0) } else { gpui::hsla(0.0, 0.0, 0.83, 1.0) };
-        let danger_bg = if is_dark { gpui::hsla(0.0, 0.40, 0.20, 1.0) } else { gpui::hsla(0.0, 0.86, 0.97, 1.0) };
-        let danger_border = if is_dark { gpui::hsla(0.0, 0.70, 0.50, 1.0) } else { gpui::hsla(0.0, 0.92, 0.87, 1.0) };
-        let danger_text = if is_dark { gpui::hsla(0.0, 0.75, 0.70, 1.0) } else { gpui::hsla(0.0, 0.70, 0.35, 1.0) };
+        let inactive_dot = if is_dark {
+            gpui::hsla(0.0, 0.0, 0.40, 1.0)
+        } else {
+            gpui::hsla(0.0, 0.0, 0.83, 1.0)
+        };
+        let danger_bg = if is_dark {
+            gpui::hsla(0.0, 0.40, 0.20, 1.0)
+        } else {
+            gpui::hsla(0.0, 0.86, 0.97, 1.0)
+        };
+        let danger_border = if is_dark {
+            gpui::hsla(0.0, 0.70, 0.50, 1.0)
+        } else {
+            gpui::hsla(0.0, 0.92, 0.87, 1.0)
+        };
+        let danger_text = if is_dark {
+            gpui::hsla(0.0, 0.75, 0.70, 1.0)
+        } else {
+            gpui::hsla(0.0, 0.70, 0.35, 1.0)
+        };
 
         // Get filter text and connections
         let filter_text = if let Ok(ui_state) = self.app_state.ui_state.try_read() {
@@ -1425,11 +1666,12 @@ impl SshTunnelApp {
         };
 
         // Get active sessions to show connection status
-        let active_connection_ids: Vec<uuid::Uuid> = if let Ok(sessions) = self.app_state.sessions.try_read() {
-            sessions.iter().map(|s| s.connection_id).collect()
-        } else {
-            vec![]
-        };
+        let active_connection_ids: Vec<uuid::Uuid> =
+            if let Ok(sessions) = self.app_state.sessions.try_read() {
+                sessions.iter().map(|s| s.connection_id).collect()
+            } else {
+                vec![]
+            };
 
         // Get confirm delete state
         let confirm_delete_id = if let Ok(ui_state) = self.app_state.ui_state.try_read() {
@@ -1779,14 +2021,14 @@ impl SshTunnelApp {
 
     /// Render right panel with config details (main content area)
     fn render_right_panel_new(&self, cx: &mut Context<Self>) -> Div {
-        use label::Label;
         use button::Button;
+        use label::Label;
 
         // Get theme colors
         let theme = cx.theme();
         let is_dark = theme.mode.is_dark();
         let bg_color = theme.background;
-        let card_bg = theme.background;  // Use background for cards
+        let card_bg = theme.background; // Use background for cards
         let border_color = theme.border;
         let text_color = theme.foreground;
         let muted_color = theme.muted_foreground;
@@ -2123,7 +2365,6 @@ impl SshTunnelApp {
                     )
             )
     }
-
 }
 
 impl Render for SshTunnelApp {
@@ -2144,7 +2385,7 @@ impl Render for SshTunnelApp {
                     .flex_shrink_0()
                     .border_b_1()
                     .border_color(cx.theme().border)
-                    .child(self.render_header(cx))
+                    .child(self.render_header(cx)),
             )
             .when_some(self.render_notifications(cx), |this, notification| {
                 this.child(
@@ -2155,7 +2396,7 @@ impl Render for SshTunnelApp {
                         .pb_3()
                         .border_b_1()
                         .border_color(cx.theme().border)
-                        .child(notification)
+                        .child(notification),
                 )
             })
             .child(
@@ -2166,12 +2407,12 @@ impl Render for SshTunnelApp {
                     .overflow_hidden()
                     .child(
                         // Left panel: Connection list (fixed width)
-                        self.render_left_panel(cx)
+                        self.render_left_panel(cx),
                     )
                     .child(
                         // Right panel: Config details (flex)
-                        self.render_right_panel_new(cx)
-                    )
+                        self.render_right_panel_new(cx),
+                    ),
             )
     }
 }

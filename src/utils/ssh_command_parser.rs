@@ -1,7 +1,10 @@
 #![allow(dead_code)]
 
-use crate::models::{AuthMethod, ForwardingConfig, LocalForwarding, RemoteForwarding, DynamicForwarding, SshConnection};
 use crate::models::forwarding::SocksVersion;
+use crate::models::{
+    AuthMethod, DynamicForwarding, ForwardingConfig, LocalForwarding, RemoteForwarding,
+    SshConnection,
+};
 use crate::utils::error::{Result, SshToolError};
 use std::path::PathBuf;
 
@@ -20,7 +23,7 @@ impl SshCommandParser {
 
         if parts.is_empty() || parts[0] != "ssh" {
             return Err(SshToolError::ConfigError(
-                "Command must start with 'ssh'".to_string()
+                "Command must start with 'ssh'".to_string(),
             ));
         }
 
@@ -49,7 +52,7 @@ impl SshCommandParser {
                     i += 1;
                     if i >= args.len() {
                         return Err(SshToolError::ConfigError(
-                            "-L requires an argument".to_string()
+                            "-L requires an argument".to_string(),
                         ));
                     }
                     let forward = Self::parse_local_forward(args[i])?;
@@ -60,7 +63,7 @@ impl SshCommandParser {
                     i += 1;
                     if i >= args.len() {
                         return Err(SshToolError::ConfigError(
-                            "-R requires an argument".to_string()
+                            "-R requires an argument".to_string(),
                         ));
                     }
                     let forward = Self::parse_remote_forward(args[i])?;
@@ -71,7 +74,7 @@ impl SshCommandParser {
                     i += 1;
                     if i >= args.len() {
                         return Err(SshToolError::ConfigError(
-                            "-D requires an argument".to_string()
+                            "-D requires an argument".to_string(),
                         ));
                     }
                     let forward = Self::parse_dynamic_forward(args[i])?;
@@ -82,7 +85,7 @@ impl SshCommandParser {
                     i += 1;
                     if i >= args.len() {
                         return Err(SshToolError::ConfigError(
-                            "-p requires an argument".to_string()
+                            "-p requires an argument".to_string(),
                         ));
                     }
                     port = args[i].parse().map_err(|_| {
@@ -94,7 +97,7 @@ impl SshCommandParser {
                     i += 1;
                     if i >= args.len() {
                         return Err(SshToolError::ConfigError(
-                            "-i requires an argument".to_string()
+                            "-i requires an argument".to_string(),
                         ));
                     }
                     identity_file = Some(PathBuf::from(args[i]));
@@ -130,9 +133,10 @@ impl SshCommandParser {
                         username = parts[0].to_string();
                         host = parts[1].to_string();
                     } else {
-                        return Err(SshToolError::ConfigError(
-                            format!("Invalid user@host format: {}", arg)
-                        ));
+                        return Err(SshToolError::ConfigError(format!(
+                            "Invalid user@host format: {}",
+                            arg
+                        )));
                     }
                 }
                 arg => {
@@ -148,9 +152,7 @@ impl SshCommandParser {
 
         // Validate required fields
         if host.is_empty() {
-            return Err(SshToolError::ConfigError(
-                "Host is required".to_string()
-            ));
+            return Err(SshToolError::ConfigError("Host is required".to_string()));
         }
 
         // Default username to current user or "root"
@@ -220,7 +222,12 @@ impl SshCommandParser {
                 let remote_port = parts[2].parse().map_err(|_| {
                     SshToolError::ConfigError(format!("Invalid remote port: {}", parts[2]))
                 })?;
-                ("127.0.0.1".to_string(), local_port, parts[1].to_string(), remote_port)
+                (
+                    "127.0.0.1".to_string(),
+                    local_port,
+                    parts[1].to_string(),
+                    remote_port,
+                )
             }
             4 => {
                 // bind_address:port:host:hostport
@@ -230,12 +237,18 @@ impl SshCommandParser {
                 let remote_port = parts[3].parse().map_err(|_| {
                     SshToolError::ConfigError(format!("Invalid remote port: {}", parts[3]))
                 })?;
-                (parts[0].to_string(), local_port, parts[2].to_string(), remote_port)
+                (
+                    parts[0].to_string(),
+                    local_port,
+                    parts[2].to_string(),
+                    remote_port,
+                )
             }
             _ => {
-                return Err(SshToolError::ConfigError(
-                    format!("Invalid local forward format: {}", arg)
-                ));
+                return Err(SshToolError::ConfigError(format!(
+                    "Invalid local forward format: {}",
+                    arg
+                )));
             }
         };
 
@@ -273,9 +286,10 @@ impl SshCommandParser {
                 (remote_port, parts[2].to_string(), local_port)
             }
             _ => {
-                return Err(SshToolError::ConfigError(
-                    format!("Invalid remote forward format: {}", arg)
-                ));
+                return Err(SshToolError::ConfigError(format!(
+                    "Invalid remote forward format: {}",
+                    arg
+                )));
             }
         };
 
@@ -306,9 +320,10 @@ impl SshCommandParser {
                 (parts[0].to_string(), port)
             }
             _ => {
-                return Err(SshToolError::ConfigError(
-                    format!("Invalid dynamic forward format: {}", arg)
-                ));
+                return Err(SshToolError::ConfigError(format!(
+                    "Invalid dynamic forward format: {}",
+                    arg
+                )));
             }
         };
 
@@ -329,7 +344,10 @@ impl SshCommandParser {
         }
 
         // Add identity file if using public key
-        if let AuthMethod::PublicKey { private_key_path, .. } = &connection.auth_method {
+        if let AuthMethod::PublicKey {
+            private_key_path, ..
+        } = &connection.auth_method
+        {
             cmd.push_str(&format!(" -i {}", private_key_path.display()));
         }
 
@@ -339,25 +357,19 @@ impl SshCommandParser {
                 ForwardingConfig::Local(local) => {
                     cmd.push_str(&format!(
                         " -L {}:{}:{}:{}",
-                        local.bind_address,
-                        local.local_port,
-                        local.remote_host,
-                        local.remote_port
+                        local.bind_address, local.local_port, local.remote_host, local.remote_port
                     ));
                 }
                 ForwardingConfig::Remote(remote) => {
                     cmd.push_str(&format!(
                         " -R {}:{}:{}",
-                        remote.remote_port,
-                        remote.local_host,
-                        remote.local_port
+                        remote.remote_port, remote.local_host, remote.local_port
                     ));
                 }
                 ForwardingConfig::Dynamic(dynamic) => {
                     cmd.push_str(&format!(
                         " -D {}:{}",
-                        dynamic.bind_address,
-                        dynamic.local_port
+                        dynamic.bind_address, dynamic.local_port
                     ));
                 }
             }
@@ -376,8 +388,8 @@ mod tests {
 
     #[test]
     fn test_parse_dynamic_forward() {
-        let conn = SshCommandParser::parse_command("ssh -D 2025 -f -C -q -N root@47.76.205.72")
-            .unwrap();
+        let conn =
+            SshCommandParser::parse_command("ssh -D 2025 -f -C -q -N root@47.76.205.72").unwrap();
 
         assert_eq!(conn.username, "root");
         assert_eq!(conn.host, "47.76.205.72");
@@ -394,8 +406,9 @@ mod tests {
 
     #[test]
     fn test_parse_local_forward() {
-        let conn = SshCommandParser::parse_command("ssh -L 13306:10.0.0.5:3306 user@jump.example.com")
-            .unwrap();
+        let conn =
+            SshCommandParser::parse_command("ssh -L 13306:10.0.0.5:3306 user@jump.example.com")
+                .unwrap();
 
         assert_eq!(conn.username, "user");
         assert_eq!(conn.host, "jump.example.com");
@@ -412,8 +425,8 @@ mod tests {
 
     #[test]
     fn test_parse_remote_forward() {
-        let conn = SshCommandParser::parse_command("ssh -R 8080:localhost:80 user@server.com")
-            .unwrap();
+        let conn =
+            SshCommandParser::parse_command("ssh -R 8080:localhost:80 user@server.com").unwrap();
 
         assert_eq!(conn.username, "user");
         assert_eq!(conn.host, "server.com");
@@ -437,13 +450,11 @@ mod tests {
             port: 2222,
             username: "user".to_string(),
             auth_method: AuthMethod::Password,
-            forwarding_configs: vec![
-                ForwardingConfig::Dynamic(DynamicForwarding {
-                    local_port: 1080,
-                    bind_address: "127.0.0.1".to_string(),
-                    socks_version: SocksVersion::Socks5,
-                }),
-            ],
+            forwarding_configs: vec![ForwardingConfig::Dynamic(DynamicForwarding {
+                local_port: 1080,
+                bind_address: "127.0.0.1".to_string(),
+                socks_version: SocksVersion::Socks5,
+            })],
             jump_hosts: Vec::new(),
             idle_timeout_seconds: Some(300),
             host_key_fingerprint: None,
@@ -489,7 +500,10 @@ mod tests {
     #[test]
     fn test_parse_with_identity_file() {
         let conn = SshCommandParser::parse_command("ssh -i /path/to/key user@host.com").unwrap();
-        if let AuthMethod::PublicKey { private_key_path, .. } = &conn.auth_method {
+        if let AuthMethod::PublicKey {
+            private_key_path, ..
+        } = &conn.auth_method
+        {
             assert_eq!(private_key_path.to_str().unwrap(), "/path/to/key");
         } else {
             panic!("Expected PublicKey auth method");
@@ -499,17 +513,18 @@ mod tests {
     #[test]
     fn test_parse_multiple_forwards() {
         let conn = SshCommandParser::parse_command(
-            "ssh -L 3306:localhost:3306 -L 5432:localhost:5432 -D 1080 user@host.com"
-        ).unwrap();
+            "ssh -L 3306:localhost:3306 -L 5432:localhost:5432 -D 1080 user@host.com",
+        )
+        .unwrap();
 
         assert_eq!(conn.forwarding_configs.len(), 3);
     }
 
     #[test]
     fn test_parse_local_forward_with_bind_address() {
-        let conn = SshCommandParser::parse_command(
-            "ssh -L 0.0.0.0:8080:localhost:80 user@host.com"
-        ).unwrap();
+        let conn =
+            SshCommandParser::parse_command("ssh -L 0.0.0.0:8080:localhost:80 user@host.com")
+                .unwrap();
 
         if let ForwardingConfig::Local(local) = &conn.forwarding_configs[0] {
             assert_eq!(local.bind_address, "0.0.0.0");
@@ -521,9 +536,7 @@ mod tests {
 
     #[test]
     fn test_parse_dynamic_forward_with_bind_address() {
-        let conn = SshCommandParser::parse_command(
-            "ssh -D 0.0.0.0:1080 user@host.com"
-        ).unwrap();
+        let conn = SshCommandParser::parse_command("ssh -D 0.0.0.0:1080 user@host.com").unwrap();
 
         if let ForwardingConfig::Dynamic(dynamic) = &conn.forwarding_configs[0] {
             assert_eq!(dynamic.bind_address, "0.0.0.0");
@@ -611,10 +624,12 @@ mod tests {
         let conn = SshCommandParser::parse_command("ssh -D 1080 user@host.com").unwrap();
         assert!(conn.name.contains("SOCKS Proxy"));
 
-        let conn = SshCommandParser::parse_command("ssh -L 8080:localhost:80 user@host.com").unwrap();
+        let conn =
+            SshCommandParser::parse_command("ssh -L 8080:localhost:80 user@host.com").unwrap();
         assert!(conn.name.contains("Local Forward"));
 
-        let conn = SshCommandParser::parse_command("ssh -R 8080:localhost:80 user@host.com").unwrap();
+        let conn =
+            SshCommandParser::parse_command("ssh -R 8080:localhost:80 user@host.com").unwrap();
         assert!(conn.name.contains("Remote Forward"));
 
         let conn = SshCommandParser::parse_command("ssh user@host.com").unwrap();

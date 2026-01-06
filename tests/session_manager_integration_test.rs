@@ -277,16 +277,14 @@ fn test_ssh_connection_creation() {
 
 #[test]
 fn test_ssh_connection_with_custom_port() {
-    let conn = SshConnection::new("Production", "prod.example.com", "admin")
-        .with_port(2222);
+    let conn = SshConnection::new("Production", "prod.example.com", "admin").with_port(2222);
 
     assert_eq!(conn.port, 2222);
 }
 
 #[test]
 fn test_ssh_connection_with_timeout() {
-    let conn = SshConnection::new("Production", "prod.example.com", "admin")
-        .with_idle_timeout(600);
+    let conn = SshConnection::new("Production", "prod.example.com", "admin").with_idle_timeout(600);
 
     assert_eq!(conn.idle_timeout_seconds, Some(600));
 }

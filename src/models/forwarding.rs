@@ -53,18 +53,13 @@ pub struct DynamicForwarding {
     pub socks_version: SocksVersion,
 }
 
-#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Default)]
 pub enum SocksVersion {
     #[serde(rename = "socks4")]
     Socks4,
     #[serde(rename = "socks5")]
+    #[default]
     Socks5,
-}
-
-impl Default for SocksVersion {
-    fn default() -> Self {
-        Self::Socks5
-    }
 }
 
 fn default_bind_address() -> String {
@@ -131,13 +126,22 @@ impl ForwardingConfig {
     pub fn description(&self) -> String {
         match self {
             Self::Local(fwd) => {
-                format!("{}:{} → {}:{}", fwd.bind_address, fwd.local_port, fwd.remote_host, fwd.remote_port)
+                format!(
+                    "{}:{} → {}:{}",
+                    fwd.bind_address, fwd.local_port, fwd.remote_host, fwd.remote_port
+                )
             }
             Self::Remote(fwd) => {
-                format!("remote:{} → {}:{}", fwd.remote_port, fwd.local_host, fwd.local_port)
+                format!(
+                    "remote:{} → {}:{}",
+                    fwd.remote_port, fwd.local_host, fwd.local_port
+                )
             }
             Self::Dynamic(fwd) => {
-                format!("{}:{} (SOCKS{:?})", fwd.bind_address, fwd.local_port, fwd.socks_version as u8)
+                format!(
+                    "{}:{} (SOCKS{:?})",
+                    fwd.bind_address, fwd.local_port, fwd.socks_version as u8
+                )
             }
         }
     }
@@ -190,15 +194,13 @@ mod tests {
 
     #[test]
     fn test_dynamic_forwarding_with_bind_address() {
-        let fwd = DynamicForwarding::new(1080)
-            .with_bind_address("0.0.0.0");
+        let fwd = DynamicForwarding::new(1080).with_bind_address("0.0.0.0");
         assert_eq!(fwd.bind_address, "0.0.0.0");
     }
 
     #[test]
     fn test_dynamic_forwarding_with_socks_version() {
-        let fwd = DynamicForwarding::new(1080)
-            .with_socks_version(SocksVersion::Socks4);
+        let fwd = DynamicForwarding::new(1080).with_socks_version(SocksVersion::Socks4);
         assert_eq!(fwd.socks_version, SocksVersion::Socks4);
     }
 

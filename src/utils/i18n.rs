@@ -32,16 +32,14 @@ pub fn current_language() -> String {
 
 /// Detect system language from environment
 fn detect_system_language() -> Option<String> {
-    std::env::var("LANG")
-        .ok()
-        .and_then(|lang| {
-            // Parse LANG environment variable (e.g., "zh_CN.UTF-8" -> "zh-CN")
-            if lang.starts_with("zh") || lang.contains("zh_CN") || lang.contains("zh_Hans") {
-                Some("zh-CN".to_string())
-            } else {
-                Some("en".to_string())
-            }
-        })
+    std::env::var("LANG").ok().map(|lang| {
+        // Parse LANG environment variable (e.g., "zh_CN.UTF-8" -> "zh-CN")
+        if lang.starts_with("zh") || lang.contains("zh_CN") || lang.contains("zh_Hans") {
+            "zh-CN".to_string()
+        } else {
+            "en".to_string()
+        }
+    })
 }
 
 /// Load saved language preference from config
@@ -62,10 +60,7 @@ fn save_language_preference(lang: &str) {
 /// Get available languages
 #[allow(dead_code)]
 pub fn available_languages() -> Vec<(&'static str, &'static str)> {
-    vec![
-        ("zh-CN", "简体中文"),
-        ("en", "English"),
-    ]
+    vec![("zh-CN", "简体中文"), ("en", "English")]
 }
 
 #[cfg(test)]

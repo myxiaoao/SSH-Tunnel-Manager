@@ -42,8 +42,10 @@ impl SessionData {
             connection_id: self.connection_id,
             connection_name: self.connection.name.clone(),
             status: SessionStatus::Connected,
-            started_at: chrono::Utc::now() - chrono::Duration::from_std(duration).unwrap_or_default(),
-            last_activity: chrono::Utc::now() - chrono::Duration::from_std(idle_duration).unwrap_or_default(),
+            started_at: chrono::Utc::now()
+                - chrono::Duration::from_std(duration).unwrap_or_default(),
+            last_activity: chrono::Utc::now()
+                - chrono::Duration::from_std(idle_duration).unwrap_or_default(),
             idle_timeout_seconds: self.connection.idle_timeout_seconds.unwrap_or(300),
             bytes_sent: self.bytes_sent,
             bytes_received: self.bytes_received,
@@ -90,6 +92,12 @@ pub struct SessionManager {
     monitor_handle: Arc<Mutex<Option<tokio::task::JoinHandle<()>>>>,
 }
 
+impl Default for SessionManager {
+    fn default() -> Self {
+        Self::new(300)
+    }
+}
+
 #[allow(dead_code)]
 impl SessionManager {
     /// Create a new session manager
@@ -99,12 +107,6 @@ impl SessionManager {
             idle_timeout: Duration::from_secs(idle_timeout_seconds),
             monitor_handle: Arc::new(Mutex::new(None)),
         }
-    }
-
-    /// Create a new session with default timeout (5 minutes)
-    #[allow(dead_code)]
-    pub fn default() -> Self {
-        Self::new(300)
     }
 
     /// Start the idle monitoring background task
@@ -130,9 +132,7 @@ impl SessionManager {
                 // Find idle sessions
                 let idle_session_ids: Vec<uuid::Uuid> = sessions_guard
                     .iter()
-                    .filter(|(_, data)| {
-                        now.duration_since(data.last_activity) > timeout
-                    })
+                    .filter(|(_, data)| now.duration_since(data.last_activity) > timeout)
                     .map(|(id, _)| *id)
                     .collect();
 
@@ -153,7 +153,10 @@ impl SessionManager {
         });
 
         *self.monitor_handle.lock().await = Some(handle);
-        tracing::info!("Started idle session monitor (timeout: {}s)", self.idle_timeout.as_secs());
+        tracing::info!(
+            "Started idle session monitor (timeout: {}s)",
+            self.idle_timeout.as_secs()
+        );
     }
 
     /// Stop the idle monitoring task
@@ -196,7 +199,8 @@ impl SessionManager {
 
         // Setup tunnels
         if !connection.forwarding_configs.is_empty() {
-            self.setup_tunnels(session_id, &connection.forwarding_configs).await?;
+            self.setup_tunnels(session_id, &connection.forwarding_configs)
+                .await?;
         }
 
         Ok(session_id)
@@ -210,7 +214,8 @@ impl SessionManager {
     ) -> Result<()> {
         let mut sessions = self.sessions.write().await;
 
-        let session_data = sessions.get_mut(&session_id)
+        let session_data = sessions
+            .get_mut(&session_id)
             .ok_or_else(|| SshToolError::SessionNotFound(session_id.to_string()))?;
 
         let session_arc = session_data.session.clone();
@@ -224,7 +229,11 @@ impl SessionManager {
             session_data.update_activity();
         }
 
-        tracing::info!("Setup {} tunnel(s) for session {}", configs.len(), session_id);
+        tracing::info!(
+            "Setup {} tunnel(s) for session {}",
+            configs.len(),
+            session_id
+        );
         Ok(())
     }
 
@@ -354,7 +363,12 @@ impl SessionManager {
 impl Drop for SessionManager {
     fn drop(&mut self) {
         // Stop the monitor task
-        if let Some(handle) = self.monitor_handle.try_lock().ok().and_then(|mut h| h.take()) {
+        if let Some(handle) = self
+            .monitor_handle
+            .try_lock()
+            .ok()
+            .and_then(|mut h| h.take())
+        {
             handle.abort();
         }
     }
@@ -453,25 +467,21 @@ mod tests {
         let connection_id = uuid::Uuid::new_v4();
 
         // Create a session data (used internally)
-        let active_session = crate::models::ActiveSession::new(
-            connection_id,
-            "Test Connection",
-            300,
-        );
+        let active_session =
+            crate::models::ActiveSession::new(connection_id, "Test Connection", 300);
 
         assert_eq!(active_session.connection_id, connection_id);
         assert_eq!(active_session.connection_name, "Test Connection");
         assert_eq!(active_session.idle_timeout_seconds, 300);
-        assert_eq!(active_session.status, crate::models::SessionStatus::Connecting);
+        assert_eq!(
+            active_session.status,
+            crate::models::SessionStatus::Connecting
+        );
     }
 
     #[test]
     fn test_session_status_transitions() {
-        let mut session = crate::models::ActiveSession::new(
-            uuid::Uuid::new_v4(),
-            "Test",
-            300,
-        );
+        let mut session = crate::models::ActiveSession::new(uuid::Uuid::new_v4(), "Test", 300);
 
         // Initial status
         assert_eq!(session.status, crate::models::SessionStatus::Connecting);
@@ -500,9 +510,7 @@ mod tests {
         let handles: Vec<_> = (0..10)
             .map(|_| {
                 let m = Arc::clone(&manager);
-                tokio::spawn(async move {
-                    m.session_count().await
-                })
+                tokio::spawn(async move { m.session_count().await })
             })
             .collect();
 

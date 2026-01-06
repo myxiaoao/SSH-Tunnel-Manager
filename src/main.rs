@@ -11,8 +11,8 @@ mod cli;
 mod ui;
 
 use clap::Parser;
-use utils::{i18n, logger};
 use cli::{Cli, run_interactive};
+use utils::{i18n, logger};
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -38,10 +38,10 @@ async fn main() -> anyhow::Result<()> {
         {
             eprintln!("GUI feature is not enabled. Please compile with --features gui");
             eprintln!("Note: GUI requires Xcode Command Line Tools on macOS.");
-            eprintln!("");
+            eprintln!();
             eprintln!("To install Xcode Command Line Tools:");
             eprintln!("  xcode-select --install");
-            eprintln!("");
+            eprintln!();
             eprintln!("Then rebuild with GUI support:");
             eprintln!("  cargo build --release --features gui");
             std::process::exit(1);
@@ -60,7 +60,10 @@ async fn main() -> anyhow::Result<()> {
                     println!("{}", rust_i18n::t!("connection.no_connections"));
                 } else {
                     for conn in connections {
-                        println!("{} - {}@{}:{}", conn.name, conn.username, conn.host, conn.port);
+                        println!(
+                            "{} - {}@{}:{}",
+                            conn.name, conn.username, conn.host, conn.port
+                        );
                     }
                 }
             }

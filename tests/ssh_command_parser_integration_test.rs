@@ -40,7 +40,9 @@ fn test_parse_ssh_with_identity_file() {
     assert!(result.is_ok());
     let parsed = result.unwrap();
     match &parsed.auth_method {
-        AuthMethod::PublicKey { private_key_path, .. } => {
+        AuthMethod::PublicKey {
+            private_key_path, ..
+        } => {
             assert_eq!(private_key_path.to_str().unwrap(), "/path/to/key");
         }
         _ => panic!("Expected PublicKey auth method"),
@@ -140,7 +142,8 @@ fn test_parse_multiple_forwards() {
 
 #[test]
 fn test_parse_complex_command() {
-    let cmd = "ssh -p 2222 -i ~/.ssh/custom_key -L 8080:web:80 -D 1080 deploy@production.example.com";
+    let cmd =
+        "ssh -p 2222 -i ~/.ssh/custom_key -L 8080:web:80 -D 1080 deploy@production.example.com";
     let result = SshCommandParser::parse_command(cmd);
 
     assert!(result.is_ok());
@@ -221,8 +224,7 @@ fn test_generate_basic_command() {
 
 #[test]
 fn test_generate_command_with_port() {
-    let conn = SshConnection::new("Test", "example.com", "user")
-        .with_port(2222);
+    let conn = SshConnection::new("Test", "example.com", "user").with_port(2222);
     let command = SshCommandParser::to_command(&conn);
 
     assert!(command.contains("-p 2222"));
@@ -385,7 +387,10 @@ fn test_generate_multiple_connections() {
 
     for conn in connections {
         let command = SshCommandParser::to_command(&conn);
-        assert!(command.starts_with("ssh"), "Command should start with 'ssh'");
+        assert!(
+            command.starts_with("ssh"),
+            "Command should start with 'ssh'"
+        );
         assert!(
             command.contains(&conn.host),
             "Command should contain host: {}",

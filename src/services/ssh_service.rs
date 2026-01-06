@@ -1,14 +1,14 @@
-use crate::models::{AuthMethod, JumpHost, SshConnection};
 use crate::models::forwarding::RemoteForwarding;
+use crate::models::{AuthMethod, JumpHost, SshConnection};
 use crate::utils::error::{Result, SshToolError};
-use russh::client::{self, Handle, AuthResult, Msg}; // client types
+use russh::client::{self, AuthResult, Handle, Msg}; // client types
 use russh::{Channel, ChannelMsg, Disconnect};
 // Note: In russh 0.55.0, key types are re-exported in russh::keys
 use russh::keys::{PrivateKey, PrivateKeyWithHashAlg, PublicKey};
 use std::path::Path;
 use std::sync::Arc;
-use tokio::sync::RwLock;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
+use tokio::sync::RwLock;
 
 /// SSH client session handle
 pub type SshSession = Handle<SshClientHandler>;
@@ -31,7 +31,12 @@ impl SshService {
         verify_host_key: bool,
         remote_forwards: Vec<RemoteForwarding>,
     ) -> Result<SshSession> {
-        tracing::info!("Connecting to {}:{} as {} (password auth)", host, port, username);
+        tracing::info!(
+            "Connecting to {}:{} as {} (password auth)",
+            host,
+            port,
+            username
+        );
 
         let config = client::Config {
             inactivity_timeout: Some(std::time::Duration::from_secs(300)),
@@ -39,7 +44,10 @@ impl SshService {
         };
 
         let sh = if !remote_forwards.is_empty() {
-            tracing::info!("Creating handler with {} remote forward(s)", remote_forwards.len());
+            tracing::info!(
+                "Creating handler with {} remote forward(s)",
+                remote_forwards.len()
+            );
             let handler = if verify_host_key {
                 SshClientHandler::with_verification(host_key_fingerprint)
             } else {
@@ -77,6 +85,7 @@ impl SshService {
     }
 
     /// Connect to SSH server with public key authentication
+    #[allow(clippy::too_many_arguments)]
     pub async fn connect_pubkey(
         host: &str,
         port: u16,
@@ -87,7 +96,12 @@ impl SshService {
         verify_host_key: bool,
         remote_forwards: Vec<RemoteForwarding>,
     ) -> Result<SshSession> {
-        tracing::info!("Connecting to {}:{} as {} (pubkey auth)", host, port, username);
+        tracing::info!(
+            "Connecting to {}:{} as {} (pubkey auth)",
+            host,
+            port,
+            username
+        );
 
         // Load private key
         let key_data = tokio::fs::read_to_string(key_path)
@@ -97,12 +111,17 @@ impl SshService {
         // In russh 0.55.0, use ssh_key::PrivateKey::from_openssh
         let key = if let Some(pass) = passphrase {
             PrivateKey::from_openssh(key_data.trim())
-                .map_err(|e| SshToolError::AuthenticationFailed(format!("Failed to load key: {}", e)))?
+                .map_err(|e| {
+                    SshToolError::AuthenticationFailed(format!("Failed to load key: {}", e))
+                })?
                 .decrypt(pass.as_bytes())
-                .map_err(|e| SshToolError::AuthenticationFailed(format!("Failed to decrypt key: {}", e)))?
+                .map_err(|e| {
+                    SshToolError::AuthenticationFailed(format!("Failed to decrypt key: {}", e))
+                })?
         } else {
-            PrivateKey::from_openssh(key_data.trim())
-                .map_err(|e| SshToolError::AuthenticationFailed(format!("Failed to load key: {}", e)))?
+            PrivateKey::from_openssh(key_data.trim()).map_err(|e| {
+                SshToolError::AuthenticationFailed(format!("Failed to load key: {}", e))
+            })?
         };
 
         let config = client::Config {
@@ -111,7 +130,10 @@ impl SshService {
         };
 
         let sh = if !remote_forwards.is_empty() {
-            tracing::info!("Creating handler with {} remote forward(s)", remote_forwards.len());
+            tracing::info!(
+                "Creating handler with {} remote forward(s)",
+                remote_forwards.len()
+            );
             let handler = if verify_host_key {
                 SshClientHandler::with_verification(host_key_fingerprint)
             } else {
@@ -247,7 +269,8 @@ impl SshService {
                     jump.host_key_fingerprint.clone(),
                     jump.verify_host_key,
                     Vec::new(), // Jump hosts typically don't have remote forwards
-                ).await?
+                )
+                .await?
             }
             AuthMethod::PublicKey {
                 private_key_path,
@@ -277,14 +300,11 @@ impl SshService {
 
         // Create a direct TCP connection through the jump host
         let _channel = jump_session
-            .channel_open_direct_tcpip(
-                &destination.host,
-                destination.port as u32,
-                "localhost",
-                0,
-            )
+            .channel_open_direct_tcpip(&destination.host, destination.port as u32, "localhost", 0)
             .await
-            .map_err(|e| SshToolError::SshConnectionFailed(format!("Jump host tunnel failed: {}", e)))?;
+            .map_err(|e| {
+                SshToolError::SshConnectionFailed(format!("Jump host tunnel failed: {}", e))
+            })?;
 
         // Now we would need to create an SSH session over this channel
         // This is a simplified implementation - full implementation would require
@@ -431,7 +451,9 @@ impl client::Handler for SshClientHandler {
             tracing::info!("Server key fingerprint: {}", fingerprint);
 
             if !verify_host_keys {
-                tracing::warn!("Host key verification disabled - accepting server key without verification");
+                tracing::warn!(
+                    "Host key verification disabled - accepting server key without verification"
+                );
                 tracing::warn!("This is insecure and should only be used for testing!");
                 return Ok(true);
             }
@@ -521,7 +543,11 @@ impl client::Handler for SshClientHandler {
                             Ok(())
                         }
                         Err(e) => {
-                            tracing::error!("Failed to connect to local service {}: {}", local_addr, e);
+                            tracing::error!(
+                                "Failed to connect to local service {}: {}",
+                                local_addr,
+                                e
+                            );
                             Err(russh::Error::Disconnect)
                         }
                     }

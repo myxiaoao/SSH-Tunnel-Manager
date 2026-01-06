@@ -36,9 +36,9 @@ impl ValidationService {
             Err(_) => {
                 // Try to resolve hostname
                 let addr_str = format!("{}:{}", host, port);
-                addr_str.parse::<SocketAddr>().map_err(|_| {
-                    SshToolError::InvalidHost(host.to_string())
-                })?
+                addr_str
+                    .parse::<SocketAddr>()
+                    .map_err(|_| SshToolError::InvalidHost(host.to_string()))?
             }
         };
 
@@ -47,9 +47,7 @@ impl ValidationService {
                 drop(listener);
                 Ok(true)
             }
-            Err(e) if e.kind() == std::io::ErrorKind::AddrInUse => {
-                Ok(false)
-            }
+            Err(e) if e.kind() == std::io::ErrorKind::AddrInUse => Ok(false),
             Err(e) if e.kind() == std::io::ErrorKind::PermissionDenied => {
                 tracing::error!("Permission denied for port {}", port);
                 Ok(false)
@@ -86,9 +84,11 @@ impl ValidationService {
         }
 
         // Validate hostname format (basic check)
-        let is_valid_hostname = host.chars().all(|c| {
-            c.is_ascii_alphanumeric() || c == '.' || c == '-' || c == '_'
-        }) && !host.starts_with('-') && !host.ends_with('-');
+        let is_valid_hostname = host
+            .chars()
+            .all(|c| c.is_ascii_alphanumeric() || c == '.' || c == '-' || c == '_')
+            && !host.starts_with('-')
+            && !host.ends_with('-');
 
         if is_valid_hostname {
             Ok(())
@@ -101,16 +101,12 @@ impl ValidationService {
     pub fn validate_ssh_key(&self, path: &Path) -> Result<()> {
         // Check if file exists
         if !path.exists() {
-            return Err(SshToolError::KeyFileNotFound(
-                path.display().to_string()
-            ));
+            return Err(SshToolError::KeyFileNotFound(path.display().to_string()));
         }
 
         // Check if it's a file (not a directory)
         if !path.is_file() {
-            return Err(SshToolError::KeyFileNotFound(
-                path.display().to_string()
-            ));
+            return Err(SshToolError::KeyFileNotFound(path.display().to_string()));
         }
 
         // On Unix, check file permissions (should be 600 or 400)
@@ -136,12 +132,7 @@ impl ValidationService {
     }
 
     /// Validate complete connection configuration
-    pub fn validate_connection(
-        &self,
-        host: &str,
-        port: u16,
-        username: &str,
-    ) -> Result<()> {
+    pub fn validate_connection(&self, host: &str, port: u16, username: &str) -> Result<()> {
         // Validate host
         self.validate_host(host)?;
 
@@ -151,7 +142,7 @@ impl ValidationService {
         // Validate username
         if username.is_empty() {
             return Err(SshToolError::ConfigError(
-                "Username cannot be empty".to_string()
+                "Username cannot be empty".to_string(),
             ));
         }
 
@@ -293,7 +284,10 @@ mod tests {
         assert_eq!(service.get_port_hint(6379), Some("Redis default port"));
         assert_eq!(service.get_port_hint(27017), Some("MongoDB default port"));
         assert_eq!(service.get_port_hint(5672), Some("RabbitMQ default port"));
-        assert_eq!(service.get_port_hint(9200), Some("Elasticsearch default port"));
+        assert_eq!(
+            service.get_port_hint(9200),
+            Some("Elasticsearch default port")
+        );
     }
 
     #[test]
@@ -320,8 +314,8 @@ mod tests {
     #[cfg(unix)]
     #[test]
     fn test_validate_ssh_key_correct_permissions() {
-        use std::os::unix::fs::PermissionsExt;
         use std::fs;
+        use std::os::unix::fs::PermissionsExt;
 
         let service = ValidationService::new();
         let temp = tempdir().unwrap();
@@ -338,8 +332,8 @@ mod tests {
     #[cfg(unix)]
     #[test]
     fn test_validate_ssh_key_wrong_permissions() {
-        use std::os::unix::fs::PermissionsExt;
         use std::fs;
+        use std::os::unix::fs::PermissionsExt;
 
         let service = ValidationService::new();
         let temp = tempdir().unwrap();
@@ -356,7 +350,9 @@ mod tests {
     #[tokio::test]
     async fn test_check_port_invalid_host() {
         let service = ValidationService::new();
-        let result = service.check_port_available("invalid host name", 8080).await;
+        let result = service
+            .check_port_available("invalid host name", 8080)
+            .await;
         assert!(result.is_err());
     }
 }

@@ -2,22 +2,17 @@ use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 
 /// SSH authentication method
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
 #[serde(tag = "type", rename_all = "lowercase")]
 pub enum AuthMethod {
     /// Password authentication (not stored)
+    #[default]
     Password,
     /// Public key authentication
     PublicKey {
         private_key_path: PathBuf,
         passphrase_required: bool,
     },
-}
-
-impl Default for AuthMethod {
-    fn default() -> Self {
-        Self::Password
-    }
 }
 
 #[allow(dead_code)]
@@ -76,8 +71,15 @@ mod tests {
     fn test_auth_method_public_key_builder() {
         let auth = AuthMethod::public_key("/home/user/.ssh/id_ed25519", true);
 
-        if let AuthMethod::PublicKey { private_key_path, passphrase_required } = auth {
-            assert_eq!(private_key_path, PathBuf::from("/home/user/.ssh/id_ed25519"));
+        if let AuthMethod::PublicKey {
+            private_key_path,
+            passphrase_required,
+        } = auth
+        {
+            assert_eq!(
+                private_key_path,
+                PathBuf::from("/home/user/.ssh/id_ed25519")
+            );
             assert!(passphrase_required);
         } else {
             panic!("Expected PublicKey variant");
@@ -90,7 +92,8 @@ mod tests {
         let auth: AuthMethod = serde_json::from_str(json).unwrap();
         assert!(matches!(auth, AuthMethod::Password));
 
-        let json = r#"{"type":"publickey","private_key_path":"/path/to/key","passphrase_required":true}"#;
+        let json =
+            r#"{"type":"publickey","private_key_path":"/path/to/key","passphrase_required":true}"#;
         let auth: AuthMethod = serde_json::from_str(json).unwrap();
         assert!(matches!(auth, AuthMethod::PublicKey { .. }));
     }

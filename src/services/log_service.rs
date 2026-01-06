@@ -119,13 +119,13 @@ impl LogService {
 
         let log_line = format!("{}\n", log_entry.format());
 
-        file.write_all(log_line.as_bytes()).await.map_err(|e| {
-            anyhow::anyhow!("Failed to write to log file: {}", e)
-        })?;
+        file.write_all(log_line.as_bytes())
+            .await
+            .map_err(|e| anyhow::anyhow!("Failed to write to log file: {}", e))?;
 
-        file.flush().await.map_err(|e| {
-            anyhow::anyhow!("Failed to flush log file: {}", e)
-        })?;
+        file.flush()
+            .await
+            .map_err(|e| anyhow::anyhow!("Failed to flush log file: {}", e))?;
 
         Ok(())
     }
@@ -185,12 +185,7 @@ impl LogService {
     /// Get recent logs (last N)
     pub async fn get_recent(&self, count: usize) -> Vec<ConnectionLog> {
         let logs = self.logs.read().await;
-        logs.iter()
-            .rev()
-            .take(count)
-            .rev()
-            .cloned()
-            .collect()
+        logs.iter().rev().take(count).rev().cloned().collect()
     }
 }
 
@@ -212,7 +207,13 @@ mod tests {
         let conn_id = Uuid::new_v4();
 
         service
-            .log(conn_id, "Test Connection", LogLevel::Info, ConnectionEvent::Connected, None)
+            .log(
+                conn_id,
+                "Test Connection",
+                LogLevel::Info,
+                ConnectionEvent::Connected,
+                None,
+            )
             .await
             .unwrap();
 
@@ -271,7 +272,13 @@ mod tests {
         // Add 5 logs to a service with max 3
         for i in 0..5 {
             service
-                .log(conn_id, format!("Log {}", i), LogLevel::Info, ConnectionEvent::Connected, None)
+                .log(
+                    conn_id,
+                    format!("Log {}", i),
+                    LogLevel::Info,
+                    ConnectionEvent::Connected,
+                    None,
+                )
                 .await
                 .unwrap();
         }
@@ -289,9 +296,36 @@ mod tests {
         let conn_id1 = Uuid::new_v4();
         let conn_id2 = Uuid::new_v4();
 
-        service.log(conn_id1, "Conn1", LogLevel::Info, ConnectionEvent::Connected, None).await.unwrap();
-        service.log(conn_id2, "Conn2", LogLevel::Info, ConnectionEvent::Connected, None).await.unwrap();
-        service.log(conn_id1, "Conn1", LogLevel::Info, ConnectionEvent::Disconnected, None).await.unwrap();
+        service
+            .log(
+                conn_id1,
+                "Conn1",
+                LogLevel::Info,
+                ConnectionEvent::Connected,
+                None,
+            )
+            .await
+            .unwrap();
+        service
+            .log(
+                conn_id2,
+                "Conn2",
+                LogLevel::Info,
+                ConnectionEvent::Connected,
+                None,
+            )
+            .await
+            .unwrap();
+        service
+            .log(
+                conn_id1,
+                "Conn1",
+                LogLevel::Info,
+                ConnectionEvent::Disconnected,
+                None,
+            )
+            .await
+            .unwrap();
 
         let logs = service.get_logs_for_connection(conn_id1).await;
         assert_eq!(logs.len(), 2);
@@ -305,9 +339,39 @@ mod tests {
         let session_id1 = Uuid::new_v4();
         let session_id2 = Uuid::new_v4();
 
-        service.log_with_session(session_id1, conn_id, "Test", LogLevel::Info, ConnectionEvent::Connected, None).await.unwrap();
-        service.log_with_session(session_id2, conn_id, "Test", LogLevel::Info, ConnectionEvent::Connected, None).await.unwrap();
-        service.log_with_session(session_id1, conn_id, "Test", LogLevel::Info, ConnectionEvent::Disconnected, None).await.unwrap();
+        service
+            .log_with_session(
+                session_id1,
+                conn_id,
+                "Test",
+                LogLevel::Info,
+                ConnectionEvent::Connected,
+                None,
+            )
+            .await
+            .unwrap();
+        service
+            .log_with_session(
+                session_id2,
+                conn_id,
+                "Test",
+                LogLevel::Info,
+                ConnectionEvent::Connected,
+                None,
+            )
+            .await
+            .unwrap();
+        service
+            .log_with_session(
+                session_id1,
+                conn_id,
+                "Test",
+                LogLevel::Info,
+                ConnectionEvent::Disconnected,
+                None,
+            )
+            .await
+            .unwrap();
 
         let logs = service.get_logs_for_session(session_id1).await;
         assert_eq!(logs.len(), 2);
@@ -319,10 +383,46 @@ mod tests {
         let service = LogService::new(100);
         let conn_id = Uuid::new_v4();
 
-        service.log(conn_id, "Test", LogLevel::Info, ConnectionEvent::Connected, None).await.unwrap();
-        service.log(conn_id, "Test", LogLevel::Warning, ConnectionEvent::IdleTimeout, None).await.unwrap();
-        service.log(conn_id, "Test", LogLevel::Error, ConnectionEvent::ConnectionFailed, None).await.unwrap();
-        service.log(conn_id, "Test", LogLevel::Info, ConnectionEvent::Disconnected, None).await.unwrap();
+        service
+            .log(
+                conn_id,
+                "Test",
+                LogLevel::Info,
+                ConnectionEvent::Connected,
+                None,
+            )
+            .await
+            .unwrap();
+        service
+            .log(
+                conn_id,
+                "Test",
+                LogLevel::Warning,
+                ConnectionEvent::IdleTimeout,
+                None,
+            )
+            .await
+            .unwrap();
+        service
+            .log(
+                conn_id,
+                "Test",
+                LogLevel::Error,
+                ConnectionEvent::ConnectionFailed,
+                None,
+            )
+            .await
+            .unwrap();
+        service
+            .log(
+                conn_id,
+                "Test",
+                LogLevel::Info,
+                ConnectionEvent::Disconnected,
+                None,
+            )
+            .await
+            .unwrap();
 
         let info_logs = service.get_logs_by_level(LogLevel::Info).await;
         assert_eq!(info_logs.len(), 2);
@@ -336,8 +436,26 @@ mod tests {
         let service = LogService::new(100);
         let conn_id = Uuid::new_v4();
 
-        service.log(conn_id, "Test", LogLevel::Info, ConnectionEvent::Connected, None).await.unwrap();
-        service.log(conn_id, "Test", LogLevel::Info, ConnectionEvent::Disconnected, None).await.unwrap();
+        service
+            .log(
+                conn_id,
+                "Test",
+                LogLevel::Info,
+                ConnectionEvent::Connected,
+                None,
+            )
+            .await
+            .unwrap();
+        service
+            .log(
+                conn_id,
+                "Test",
+                LogLevel::Info,
+                ConnectionEvent::Disconnected,
+                None,
+            )
+            .await
+            .unwrap();
 
         assert_eq!(service.get_logs().await.len(), 2);
 
@@ -351,7 +469,16 @@ mod tests {
         let conn_id = Uuid::new_v4();
 
         for i in 0..10 {
-            service.log(conn_id, format!("Log {}", i), LogLevel::Info, ConnectionEvent::Connected, None).await.unwrap();
+            service
+                .log(
+                    conn_id,
+                    format!("Log {}", i),
+                    LogLevel::Info,
+                    ConnectionEvent::Connected,
+                    None,
+                )
+                .await
+                .unwrap();
         }
 
         let recent = service.get_recent(3).await;
@@ -368,7 +495,16 @@ mod tests {
         let service = LogService::new(100).with_file(log_path.clone());
         let conn_id = Uuid::new_v4();
 
-        service.log(conn_id, "Test", LogLevel::Info, ConnectionEvent::Connected, None).await.unwrap();
+        service
+            .log(
+                conn_id,
+                "Test",
+                LogLevel::Info,
+                ConnectionEvent::Connected,
+                None,
+            )
+            .await
+            .unwrap();
 
         // Check file was created and has content
         let content = std::fs::read_to_string(&log_path).unwrap();

@@ -3,8 +3,8 @@
 //! These tests verify the complete workflow of configuration management,
 //! including file I/O, connection CRUD operations, and template management.
 
-use ssh_tunnel_manager::models::{AuthMethod, ForwardingConfig, SshConnection, ConnectionTemplate};
-use ssh_tunnel_manager::services::config_service::{ConfigService, AppSettings};
+use ssh_tunnel_manager::models::{AuthMethod, ConnectionTemplate, ForwardingConfig, SshConnection};
+use ssh_tunnel_manager::services::config_service::{AppSettings, ConfigService};
 use tempfile::TempDir;
 
 /// Helper to create a test config service with a temporary directory
@@ -26,10 +26,14 @@ fn test_full_connection_lifecycle() {
     // Create
     let conn = SshConnection::new("Production Server", "prod.example.com", "admin");
     let conn_id = conn.id;
-    service.save_connection(&conn).expect("Failed to add connection");
+    service
+        .save_connection(&conn)
+        .expect("Failed to add connection");
 
     // Read
-    let retrieved = service.get_connection(conn_id).expect("Failed to get connection");
+    let retrieved = service
+        .get_connection(conn_id)
+        .expect("Failed to get connection");
     assert!(retrieved.is_some());
     let retrieved = retrieved.unwrap();
     assert_eq!(retrieved.name, "Production Server");
@@ -39,18 +43,26 @@ fn test_full_connection_lifecycle() {
     let mut updated = retrieved;
     updated.name = "Production Server (Updated)".to_string();
     updated.port = 2222;
-    service.save_connection(&updated).expect("Failed to update connection");
+    service
+        .save_connection(&updated)
+        .expect("Failed to update connection");
 
-    let after_update = service.get_connection(conn_id).expect("Failed to get updated connection");
+    let after_update = service
+        .get_connection(conn_id)
+        .expect("Failed to get updated connection");
     assert!(after_update.is_some());
     let after_update = after_update.unwrap();
     assert_eq!(after_update.name, "Production Server (Updated)");
     assert_eq!(after_update.port, 2222);
 
     // Delete
-    let deleted = service.delete_connection(conn_id).expect("Failed to delete connection");
+    let deleted = service
+        .delete_connection(conn_id)
+        .expect("Failed to delete connection");
     assert!(deleted);
-    let result = service.get_connection(conn_id).expect("get_connection should not error");
+    let result = service
+        .get_connection(conn_id)
+        .expect("get_connection should not error");
     assert!(result.is_none());
 }
 
@@ -63,16 +75,26 @@ fn test_multiple_connections_management() {
     let conn2 = SshConnection::new("Server 2", "server2.example.com", "user2");
     let conn3 = SshConnection::new("Server 3", "server3.example.com", "user3");
 
-    service.save_connection(&conn1).expect("Failed to add connection 1");
-    service.save_connection(&conn2).expect("Failed to add connection 2");
-    service.save_connection(&conn3).expect("Failed to add connection 3");
+    service
+        .save_connection(&conn1)
+        .expect("Failed to add connection 1");
+    service
+        .save_connection(&conn2)
+        .expect("Failed to add connection 2");
+    service
+        .save_connection(&conn3)
+        .expect("Failed to add connection 3");
 
     // List all connections
-    let all_connections = service.load_connections().expect("Failed to load connections");
+    let all_connections = service
+        .load_connections()
+        .expect("Failed to load connections");
     assert_eq!(all_connections.len(), 3);
 
     // Delete one connection
-    service.delete_connection(conn2.id).expect("Failed to delete");
+    service
+        .delete_connection(conn2.id)
+        .expect("Failed to delete");
     let remaining = service.load_connections().expect("Failed to load");
     assert_eq!(remaining.len(), 2);
 
@@ -89,7 +111,9 @@ fn test_connection_with_auth_methods() {
     // Connection with password auth
     let conn_password = SshConnection::new("Password Auth", "host1.com", "user")
         .with_auth_method(AuthMethod::Password);
-    service.save_connection(&conn_password).expect("Failed to add");
+    service
+        .save_connection(&conn_password)
+        .expect("Failed to add");
 
     // Connection with public key auth
     let conn_key = SshConnection::new("Key Auth", "host2.com", "user")
@@ -98,11 +122,16 @@ fn test_connection_with_auth_methods() {
 
     // Verify auth methods are persisted correctly
     let retrieved_password = service.get_connection(conn_password.id).unwrap().unwrap();
-    assert!(matches!(retrieved_password.auth_method, AuthMethod::Password));
+    assert!(matches!(
+        retrieved_password.auth_method,
+        AuthMethod::Password
+    ));
 
     let retrieved_key = service.get_connection(conn_key.id).unwrap().unwrap();
     match &retrieved_key.auth_method {
-        AuthMethod::PublicKey { private_key_path, .. } => {
+        AuthMethod::PublicKey {
+            private_key_path, ..
+        } => {
             assert_eq!(private_key_path.to_str().unwrap(), "/home/user/.ssh/id_rsa");
         }
         _ => panic!("Expected PublicKey auth method"),
@@ -119,7 +148,10 @@ fn test_connection_with_port_forwarding() {
 
     service.save_connection(&conn).expect("Failed to add");
 
-    let retrieved = service.get_connection(conn.id).expect("Failed to get").unwrap();
+    let retrieved = service
+        .get_connection(conn.id)
+        .expect("Failed to get")
+        .unwrap();
     assert_eq!(retrieved.forwarding_configs.len(), 2);
 }
 
@@ -134,7 +166,9 @@ fn test_template_save_and_load() {
     // Create a template
     let template = ConnectionTemplate::new("Development Server", "dev-template");
 
-    service.save_templates(&[template.clone()]).expect("Failed to save template");
+    service
+        .save_templates(&[template.clone()])
+        .expect("Failed to save template");
 
     // Retrieve template
     let templates = service.load_templates().expect("Failed to load templates");
@@ -152,7 +186,9 @@ fn test_multiple_templates() {
         ConnectionTemplate::new("Cache Server", "cache"),
     ];
 
-    service.save_templates(&templates).expect("Failed to save templates");
+    service
+        .save_templates(&templates)
+        .expect("Failed to save templates");
 
     let loaded = service.load_templates().expect("Failed to load");
     assert_eq!(loaded.len(), 3);
@@ -175,7 +211,9 @@ fn test_config_persistence_across_instances() {
         service.save_connection(&conn).expect("Failed to add");
 
         let template = ConnectionTemplate::new("Persistent Template", "persist");
-        service.save_templates(&[template]).expect("Failed to save template");
+        service
+            .save_templates(&[template])
+            .expect("Failed to save template");
     }
 
     // Second instance: verify data persisted
@@ -207,7 +245,9 @@ fn test_settings_persistence() {
         let mut settings = AppSettings::default();
         settings.language = "zh-CN".to_string();
         settings.idle_timeout_seconds = 600;
-        service.save_settings(&settings).expect("Failed to save settings");
+        service
+            .save_settings(&settings)
+            .expect("Failed to save settings");
     }
 
     // Second instance: verify settings persisted
@@ -227,7 +267,9 @@ fn test_settings_persistence() {
 fn test_delete_nonexistent_connection() {
     let (service, _temp) = create_test_config_service();
 
-    let result = service.delete_connection(uuid::Uuid::new_v4()).expect("Should not error");
+    let result = service
+        .delete_connection(uuid::Uuid::new_v4())
+        .expect("Should not error");
     assert!(!result); // false = nothing deleted
 }
 
@@ -235,7 +277,9 @@ fn test_delete_nonexistent_connection() {
 fn test_get_nonexistent_connection() {
     let (service, _temp) = create_test_config_service();
 
-    let result = service.get_connection(uuid::Uuid::new_v4()).expect("Should not error");
+    let result = service
+        .get_connection(uuid::Uuid::new_v4())
+        .expect("Should not error");
     assert!(result.is_none());
 }
 
@@ -251,7 +295,10 @@ fn test_connection_with_all_options() {
 
     service.save_connection(&conn).expect("Failed to add");
 
-    let retrieved = service.get_connection(conn.id).expect("Failed to get").unwrap();
+    let retrieved = service
+        .get_connection(conn.id)
+        .expect("Failed to get")
+        .unwrap();
 
     assert_eq!(retrieved.port, 2222);
     assert_eq!(retrieved.idle_timeout_seconds, Some(600));
@@ -270,7 +317,11 @@ fn test_builtin_templates() {
     let templates = ConnectionTemplate::builtin_templates();
     assert!(!templates.is_empty());
     // Should have at least MySQL and SOCKS templates
-    assert!(templates.iter().any(|t| t.name.contains("MySQL") || t.description.contains("MySQL")));
+    assert!(
+        templates
+            .iter()
+            .any(|t| t.name.contains("MySQL") || t.description.contains("MySQL"))
+    );
 }
 
 #[test]

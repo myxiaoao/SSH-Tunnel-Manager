@@ -48,7 +48,11 @@ pub enum SessionStatus {
 
 #[allow(dead_code)]
 impl ActiveSession {
-    pub fn new(connection_id: Uuid, connection_name: impl Into<String>, idle_timeout_seconds: u64) -> Self {
+    pub fn new(
+        connection_id: Uuid,
+        connection_name: impl Into<String>,
+        idle_timeout_seconds: u64,
+    ) -> Self {
         let now = Utc::now();
         Self {
             id: Uuid::new_v4(),
@@ -160,7 +164,7 @@ mod tests {
     fn test_format_traffic() {
         let mut session = ActiveSession::new(Uuid::new_v4(), "Test", 300);
         session.bytes_sent = 1024 * 1024 * 2; // 2 MB
-        session.bytes_received = 1024 * 500;  // 500 KB
+        session.bytes_received = 1024 * 500; // 500 KB
 
         let traffic = session.format_traffic();
         assert!(traffic.contains("MB") || traffic.contains("KB"));
