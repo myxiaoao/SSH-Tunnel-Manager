@@ -2,7 +2,7 @@
 set -e
 
 # SSH Tunnel Manager - macOS Application Packaging Script
-# Usage: ./scripts/package-macos.sh [--skip-build] [--universal]
+# Usage: ./scripts/package-macos.sh [--skip-build] [--universal] [--cli-only] [--archive]
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
@@ -16,10 +16,14 @@ BUNDLE_ID="com.myxiaoao.${PACKAGE_NAME}"
 # Parse arguments
 SKIP_BUILD=false
 UNIVERSAL=false
+CLI_ONLY=false
+CREATE_ARCHIVE=false
 for arg in "$@"; do
     case $arg in
         --skip-build) SKIP_BUILD=true ;;
         --universal) UNIVERSAL=true ;;
+        --cli-only) CLI_ONLY=true ;;
+        --archive) CREATE_ARCHIVE=true ;;
     esac
 done
 
@@ -29,33 +33,63 @@ echo ""
 
 cd "$PROJECT_DIR"
 
-# Build release binary with GUI feature
+# Build release binaries
 if [ "$SKIP_BUILD" = false ]; then
     if [ "$UNIVERSAL" = true ]; then
-        echo "📦 Building universal binary (arm64 + x86_64)..."
-        # Ensure both targets are installed
+        echo "📦 Building universal binaries (arm64 + x86_64)..."
         rustup target add aarch64-apple-darwin x86_64-apple-darwin 2>/dev/null || true
 
-        cargo build --release --features gui --target aarch64-apple-darwin
-        cargo build --release --features gui --target x86_64-apple-darwin
-
-        # Create universal binary
+        # Build CLI
+        cargo build --release --target aarch64-apple-darwin
+        cargo build --release --target x86_64-apple-darwin
         mkdir -p target/release
         lipo -create \
             target/aarch64-apple-darwin/release/"$PACKAGE_NAME" \
             target/x86_64-apple-darwin/release/"$PACKAGE_NAME" \
             -output target/release/"$PACKAGE_NAME"
+
+        # Build GUI (if not CLI only)
+        if [ "$CLI_ONLY" = false ]; then
+            cargo build --release --features gui --target aarch64-apple-darwin
+            cargo build --release --features gui --target x86_64-apple-darwin
+            lipo -create \
+                target/aarch64-apple-darwin/release/"$PACKAGE_NAME" \
+                target/x86_64-apple-darwin/release/"$PACKAGE_NAME" \
+                -output target/release/"$PACKAGE_NAME"-gui
+        fi
     else
-        echo "📦 Building release binary..."
-        cargo build --release --features gui
+        echo "📦 Building release binaries..."
+        cargo build --release
+        if [ "$CLI_ONLY" = false ]; then
+            cargo build --release --features gui
+            cp target/release/"$PACKAGE_NAME" target/release/"$PACKAGE_NAME"-gui
+            cargo build --release
+        fi
     fi
 fi
 
-# Verify binary exists
-BINARY_PATH="$PROJECT_DIR/target/release/$PACKAGE_NAME"
-if [ ! -f "$BINARY_PATH" ]; then
-    echo "❌ Binary not found: $BINARY_PATH"
+# Verify CLI binary exists
+CLI_BINARY="$PROJECT_DIR/target/release/$PACKAGE_NAME"
+if [ ! -f "$CLI_BINARY" ]; then
+    echo "❌ CLI binary not found: $CLI_BINARY"
     exit 1
+fi
+echo "✅ CLI binary: $CLI_BINARY"
+
+# Exit early if CLI only
+if [ "$CLI_ONLY" = true ]; then
+    if [ "$CREATE_ARCHIVE" = true ]; then
+        cd target/release
+        tar -czvf "${PACKAGE_NAME}-v${VERSION}-macos-universal.tar.gz" "$PACKAGE_NAME"
+        echo "✅ Archive: target/release/${PACKAGE_NAME}-v${VERSION}-macos-universal.tar.gz"
+    fi
+    exit 0
+fi
+
+# Check GUI binary
+GUI_BINARY="$PROJECT_DIR/target/release/${PACKAGE_NAME}-gui"
+if [ ! -f "$GUI_BINARY" ]; then
+    GUI_BINARY="$CLI_BINARY"
 fi
 
 # Create app bundle directories
@@ -69,7 +103,7 @@ rm -rf "$APP_DIR"
 mkdir -p "$MACOS_DIR" "$RESOURCES_DIR"
 
 # Copy binary
-cp "$BINARY_PATH" "$MACOS_DIR/"
+cp "$GUI_BINARY" "$MACOS_DIR/$PACKAGE_NAME"
 
 # Create launcher script
 cat > "$MACOS_DIR/launcher" << 'EOF'
@@ -208,15 +242,31 @@ generate_icon() {
 
 generate_icon || echo "   Continuing without custom icon..."
 
+# Create archives if requested
+if [ "$CREATE_ARCHIVE" = true ]; then
+    echo "📦 Creating archives..."
+    cd "$PROJECT_DIR/target/release"
+
+    # CLI archive
+    tar -czvf "${PACKAGE_NAME}-v${VERSION}-macos-universal.tar.gz" "$PACKAGE_NAME"
+    echo "   ✅ ${PACKAGE_NAME}-v${VERSION}-macos-universal.tar.gz"
+
+    # GUI app archive
+    zip -r "SSH-Tunnel-Manager-v${VERSION}-macos.zip" "$APP_NAME.app"
+    echo "   ✅ SSH-Tunnel-Manager-v${VERSION}-macos.zip"
+
+    cd "$PROJECT_DIR"
+fi
+
 # Calculate app size
 APP_SIZE=$(du -sh "$APP_DIR" | cut -f1)
-BINARY_SIZE=$(du -sh "$BINARY_PATH" | cut -f1)
+CLI_SIZE=$(du -sh "$CLI_BINARY" | cut -f1)
 
 echo ""
 echo "✅ Packaging complete!"
 echo ""
-echo "   App:     $APP_DIR"
-echo "   Size:    $APP_SIZE (binary: $BINARY_SIZE)"
+echo "   CLI:     $CLI_BINARY ($CLI_SIZE)"
+echo "   App:     $APP_DIR ($APP_SIZE)"
 echo "   Version: $VERSION"
 echo ""
 echo "📋 Next steps:"
