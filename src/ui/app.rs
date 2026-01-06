@@ -1196,7 +1196,7 @@ impl SshTunnelApp {
                         Button::new("lang-toggle")
                             .small()
                             .ghost()
-                            .label(if language == "zh-CN" { "To English" } else { "切换中文" })
+                            .label(if language == "zh-CN" { "Switch to English" } else { "切换为简体中文" })
                             .on_click(move |_, window, _cx| {
                                 // Toggle language synchronously
                                 if let Ok(mut ui_state) = app_state.ui_state.try_write() {
