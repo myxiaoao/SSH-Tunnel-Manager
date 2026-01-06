@@ -1,7 +1,7 @@
 # SSH Tunnel Manager - Example Connections Configuration
 #
 # Copy this file to your configuration directory and modify as needed:
-# macOS: ~/Library/Application Support/com.sshtool.ssh-tunnel-manager/connections.toml
+# macOS: ~/Library/Application Support/com.myxiaoao.ssh-tunnel-manager/connections.toml
 # Linux: ~/.config/ssh-tunnel-manager/connections.toml
 # Windows: %APPDATA%\ssh-tunnel-manager\connections.toml
 

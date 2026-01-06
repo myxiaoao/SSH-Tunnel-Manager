@@ -43,7 +43,7 @@ impl ConfigService {
 
     /// Get default config directory
     fn get_config_dir() -> Result<PathBuf> {
-        ProjectDirs::from("com", "sshtool", "ssh-tunnel-manager")
+        ProjectDirs::from("com", "myxiaoao", "ssh-tunnel-manager")
             .map(|dirs| dirs.config_dir().to_path_buf())
             .ok_or_else(|| {
                 SshToolError::ConfigError("Failed to get config directory".to_string())
