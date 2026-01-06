@@ -1,10 +1,10 @@
 [package]
 name = "ssh-tunnel-manager"
-version = "0.1.0"
-edition = "2021"
+version = "1.0.0"
+edition = "2024"
 authors = ["Cooper"]
 description = "A modern SSH tunnel and port forwarding manager with GUI"
-license = "MIT OR Apache-2.0"
+license = "MIT"
 
 [features]
 default = []
