@@ -1,10 +1,24 @@
+<div align="center">
+
 # SSH Tunnel Manager
 
-[![CI](https://github.com/myxiaoao/SSH-Tunnel-Manager/actions/workflows/ci.yml/badge.svg)](https://github.com/myxiaoao/SSH-Tunnel-Manager/actions/workflows/ci.yml)  [![Release](https://github.com/myxiaoao/SSH-Tunnel-Manager/actions/workflows/release.yml/badge.svg)](https://github.com/myxiaoao/SSH-Tunnel-Manager/actions/workflows/release.yml)
+**A modern SSH tunnel and port forwarding manager with GUI and CLI interfaces**
 
-A modern SSH tunnel and port forwarding manager with GUI and CLI interfaces, written in Rust.
+Built with Rust 🦀 and GPUI for blazing-fast performance
 
-![SSH Tunnel Manager](examples/art.png)
+[![CI](https://github.com/myxiaoao/SSH-Tunnel-Manager/actions/workflows/ci.yml/badge.svg)](https://github.com/myxiaoao/SSH-Tunnel-Manager/actions/workflows/ci.yml)
+[![Release](https://github.com/myxiaoao/SSH-Tunnel-Manager/actions/workflows/release.yml/badge.svg)](https://github.com/myxiaoao/SSH-Tunnel-Manager/actions/workflows/release.yml)
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![Rust](https://img.shields.io/badge/rust-1.87+-orange.svg)](https://www.rust-lang.org)
+[![Platform](https://img.shields.io/badge/platform-macOS-lightgrey.svg)](https://www.apple.com/macos)
+
+<img src="examples/art.png" alt="SSH Tunnel Manager Screenshot" width="800">
+
+---
+
+A modern alternative to command-line SSH tunneling, combining intuitive GUI management with powerful CLI flexibility through a seamless, high-performance interface.
+
+</div>
 
 ## Features
 
