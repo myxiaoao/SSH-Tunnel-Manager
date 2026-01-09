@@ -18,6 +18,7 @@ fn open_main_window(cx: &mut App) {
     cx.open_window(
         WindowOptions {
             window_bounds: Some(WindowBounds::Windowed(bounds)),
+            window_min_size: Some(size(px(900.0), px(600.0))),
             titlebar: Some(TitlebarOptions {
                 title: Some("SSH Tunnel Manager".into()),
                 appears_transparent: false,

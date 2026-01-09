@@ -625,7 +625,9 @@ impl SshTunnelApp {
                     ),
             )
             .child(
-                h_flex()
+                div()
+                    .flex()
+                    .flex_wrap()
                     .gap_2()
                     .child(self.render_mode_radio(
                         &format!("{} (-L)", t!("forwarding.local")),
@@ -681,7 +683,6 @@ impl SshTunnelApp {
 
         div()
             .cursor_pointer()
-            .flex_1()
             .px_3()
             .py_2()
             .rounded_md()
