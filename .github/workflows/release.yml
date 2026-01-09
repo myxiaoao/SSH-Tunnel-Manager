@@ -36,6 +36,12 @@ jobs:
       - name: Install librsvg
         run: brew install librsvg
 
+      - name: Setup Xcode for Metal
+        run: |
+          sudo xcode-select --switch /Applications/Xcode.app/Contents/Developer
+          xcodebuild -runFirstLaunch || true
+          xcodebuild -downloadComponent MetalToolchain || true
+
       - name: Get version
         id: version
         run: |
