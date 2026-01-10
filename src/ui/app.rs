@@ -633,7 +633,6 @@ impl SshTunnelApp {
                         &format!("{} (-L)", t!("forwarding.local")),
                         form_data.forwarding_type == "local",
                         "local",
-                        card_bg,
                         border_color,
                         text_color,
                         primary_color,
@@ -642,7 +641,6 @@ impl SshTunnelApp {
                         &format!("{} (-R)", t!("forwarding.remote")),
                         form_data.forwarding_type == "remote",
                         "remote",
-                        card_bg,
                         border_color,
                         text_color,
                         primary_color,
@@ -651,7 +649,6 @@ impl SshTunnelApp {
                         &format!("{} (-D)", t!("forwarding.dynamic")),
                         form_data.forwarding_type == "dynamic",
                         "dynamic",
-                        card_bg,
                         border_color,
                         text_color,
                         primary_color,
@@ -672,7 +669,6 @@ impl SshTunnelApp {
         label: &str,
         selected: bool,
         mode: &str,
-        _card_bg: Hsla,
         border_color: Hsla,
         text_color: Hsla,
         primary_color: Hsla,
@@ -884,6 +880,69 @@ impl SshTunnelApp {
             )
     }
 
+    /// Render a checkbox toggle with label
+    fn render_checkbox<F>(
+        id: &'static str,
+        label_text: String,
+        checked: bool,
+        card_bg: Hsla,
+        border_color: Hsla,
+        text_color: Hsla,
+        muted_color: Hsla,
+        muted_bg: Hsla,
+        on_toggle: F,
+    ) -> Stateful<Div>
+    where
+        F: Fn() + 'static,
+    {
+        use label::Label;
+        let success_color = gpui::hsla(142.0 / 360.0, 0.71, 0.45, 1.0);
+
+        div()
+            .id(id)
+            .child(
+                h_flex()
+                    .gap_2()
+                    .items_center()
+                    .cursor_pointer()
+                    .px_3()
+                    .py_2()
+                    .bg(if checked {
+                        success_color.opacity(0.1)
+                    } else {
+                        muted_bg
+                    })
+                    .rounded_md()
+                    .child(
+                        div()
+                            .size(px(16.0))
+                            .rounded_sm()
+                            .border_1()
+                            .border_color(if checked { success_color } else { border_color })
+                            .bg(if checked { success_color } else { card_bg })
+                            .flex()
+                            .items_center()
+                            .justify_center()
+                            .when(checked, |this| {
+                                this.child(
+                                    div()
+                                        .text_xs()
+                                        .text_color(gpui::hsla(0.0, 0.0, 1.0, 1.0))
+                                        .child("✓"),
+                                )
+                            }),
+                    )
+                    .child(
+                        Label::new(label_text)
+                            .text_size(rems(0.85))
+                            .text_color(if checked { text_color } else { muted_color }),
+                    ),
+            )
+            .on_mouse_down(gpui::MouseButton::Left, move |_event, _window, _app| {
+                on_toggle();
+            })
+    }
+
     /// Render options section
     fn render_options(&self, cx: &mut Context<Self>) -> Div {
         use label::Label;
@@ -894,7 +953,6 @@ impl SshTunnelApp {
         let text_color = theme.foreground;
         let muted_color = theme.muted_foreground;
         let muted_bg = theme.muted;
-        let success_color = gpui::hsla(142.0 / 360.0, 0.71, 0.45, 1.0); // Green #22c55e as Hsla
 
         // Get current form data
         let (compression, quiet_mode) = if let Ok(ui_state) = self.app_state.ui_state.try_read() {
@@ -930,126 +988,38 @@ impl SshTunnelApp {
             .child(
                 h_flex()
                     .gap_4()
-                    // Compression checkbox
-                    .child(
-                        div()
-                            .id("compression_toggle")
-                            .child(
-                                h_flex()
-                                    .gap_2()
-                                    .items_center()
-                                    .cursor_pointer()
-                                    .px_3()
-                                    .py_2()
-                                    .bg(if compression {
-                                        success_color.opacity(0.1)
-                                    } else {
-                                        muted_bg
-                                    })
-                                    .rounded_md()
-                                    .child(
-                                        div()
-                                            .size(px(16.0))
-                                            .rounded_sm()
-                                            .border_1()
-                                            .border_color(if compression {
-                                                success_color
-                                            } else {
-                                                border_color
-                                            })
-                                            .bg(if compression { success_color } else { card_bg })
-                                            .flex()
-                                            .items_center()
-                                            .justify_center()
-                                            .when(compression, |this| {
-                                                this.child(
-                                                    div()
-                                                        .text_xs()
-                                                        .text_color(gpui::hsla(0.0, 0.0, 1.0, 1.0))
-                                                        .child("✓"),
-                                                )
-                                            }),
-                                    )
-                                    .child(
-                                        Label::new(t!("connection.compression").to_string())
-                                            .text_size(rems(0.85))
-                                            .text_color(if compression {
-                                                text_color
-                                            } else {
-                                                muted_color
-                                            }),
-                                    ),
-                            )
-                            .on_mouse_down(
-                                gpui::MouseButton::Left,
-                                move |_event, _window, _app| {
-                                    let app_state = app_state_compression.clone();
-                                    tokio::spawn(async move {
-                                        app_state.toggle_compression().await;
-                                    });
-                                },
-                            ),
-                    )
-                    // Quiet Mode checkbox
-                    .child(
-                        div()
-                            .id("quiet_mode_toggle")
-                            .child(
-                                h_flex()
-                                    .gap_2()
-                                    .items_center()
-                                    .cursor_pointer()
-                                    .px_3()
-                                    .py_2()
-                                    .bg(if quiet_mode {
-                                        success_color.opacity(0.1)
-                                    } else {
-                                        muted_bg
-                                    })
-                                    .rounded_md()
-                                    .child(
-                                        div()
-                                            .size(px(16.0))
-                                            .rounded_sm()
-                                            .border_1()
-                                            .border_color(if quiet_mode {
-                                                success_color
-                                            } else {
-                                                border_color
-                                            })
-                                            .bg(if quiet_mode { success_color } else { card_bg })
-                                            .flex()
-                                            .items_center()
-                                            .justify_center()
-                                            .when(quiet_mode, |this| {
-                                                this.child(
-                                                    div()
-                                                        .text_xs()
-                                                        .text_color(gpui::hsla(0.0, 0.0, 1.0, 1.0))
-                                                        .child("✓"),
-                                                )
-                                            }),
-                                    )
-                                    .child(
-                                        Label::new(t!("connection.quiet_mode").to_string())
-                                            .text_size(rems(0.85))
-                                            .text_color(if quiet_mode {
-                                                text_color
-                                            } else {
-                                                muted_color
-                                            }),
-                                    ),
-                            )
-                            .on_mouse_down(
-                                gpui::MouseButton::Left,
-                                move |_event, _window, _app| {
-                                    let app_state = app_state_quiet.clone();
-                                    tokio::spawn(async move {
-                                        app_state.toggle_quiet_mode().await;
-                                    });
-                                },
-                            ),
-                    ),
+                    .child(Self::render_checkbox(
+                        "compression_toggle",
+                        t!("connection.compression").to_string(),
+                        compression,
+                        card_bg,
+                        border_color,
+                        text_color,
+                        muted_color,
+                        muted_bg,
+                        move || {
+                            let app_state = app_state_compression.clone();
+                            tokio::spawn(async move {
+                                app_state.toggle_compression().await;
+                            });
+                        },
+                    ))
+                    .child(Self::render_checkbox(
+                        "quiet_mode_toggle",
+                        t!("connection.quiet_mode").to_string(),
+                        quiet_mode,
+                        card_bg,
+                        border_color,
+                        text_color,
+                        muted_color,
+                        muted_bg,
+                        move || {
+                            let app_state = app_state_quiet.clone();
+                            tokio::spawn(async move {
+                                app_state.toggle_quiet_mode().await;
+                            });
+                        },
+                    )),
             )
     }
 
@@ -1530,6 +1500,7 @@ impl SshTunnelApp {
                             let app_state = self.app_state.clone();
                             let duration = chrono::Utc::now().signed_duration_since(session.started_at);
                             let duration_str = Self::format_duration(duration);
+                            // Memory intentionally leaked for GPUI element ID stability across renders
                             let btn_id: &'static str = Box::leak(format!("disconnect_{}", idx).into_boxed_str());
 
                             h_flex()
@@ -1879,6 +1850,7 @@ impl SshTunnelApp {
                                                 )
                                                 // Quick connect button (only when not connected)
                                                 .when(!is_connected, |this| {
+                                                    // Memory intentionally leaked for GPUI element ID stability across renders
                                                     let btn_id: &'static str = Box::leak(format!("qc_{}", conn_id).into_boxed_str());
                                                     this.child(
                                                         div()
